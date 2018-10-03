@@ -9,10 +9,11 @@
 ## consider switching to "fitness-class" model
 
 module WaveFit
-export evolve!
+export evolve!, evolve_list!, evolve_dict!
 export Clone
 export Population, Landscape
 export FitnessClass, FCPopulation
+export get_mean_fitness
 
 using Distributions, Combinatorics
 
@@ -81,6 +82,34 @@ mutable struct Population
     Population(K,landscape) = new(K,landscape,Clone[Clone(K)],0,Int64[0,0])
 end
 
+function get_mean_fitness(population::FCPopulation)
+
+    mean_bg_fitness = 0
+    mean_loci_fitness = 0
+    mean_fitness = 0
+    var_bg_fitness = 0
+    N = sum([class.n for class in population.classes])
+
+    # calculate the mean fitness and variance
+    # there might be a smarter way to do this other than iterating over all clones twice...
+    for (cli, class) in enumerate(population.classes);
+        tmp_bg_fit = class.n*class.bg_mutations/N
+        mean_bg_fitness += tmp_bg_fit
+        var_bg_fitness += tmp_bg_fit^2/class.n
+        #mean_loci_fitness += loci_fitness(class, population)*class.n/N
+    end
+    if var_bg_fitness > 0
+        mean_bg_fitness *= population.landscape.σ^2/var_bg_fitness
+    end
+
+
+    mean_fitness = mean_bg_fitness + mean_loci_fitness
+
+
+
+    return [mean_bg_fitness, mean_fitness, var_bg_fitness]
+
+end
 
 function change_clone_size(clone::Clone, newsize::Int64)
     # copies an existing clone but modifies the size
@@ -136,6 +165,8 @@ function selection!(population::FCPopulation)
         end
         total_fitness = bg_fitness# + loci_fitness(clone, population)
         offspring_dist = Poisson(max(class.n*(1+total_fitness-mean_fitness)*population.K/N,0.0))
+        #offspring_dist = Poisson(max(class.n*(1+total_fitness)/(1+mean_fitness)*population.K/N,0.0))
+
         num_offspring = rand(offspring_dist)
 
         tmp_clone = change_clone_size(class, num_offspring)
@@ -183,6 +214,8 @@ function selection!(population::Population)
         end
         total_fitness = bg_fitness + loci_fitness(clone, population)
         offspring_dist = Poisson(max(clone.n*(1+total_fitness-mean_fitness)*population.K/N,0.0))
+        #offspring_dist = Poisson(max(clone.n*(1+total_fitness)/(1+mean_fitness)*population.K/N,0.0))
+
         num_offspring = rand(offspring_dist)
 
         tmp_clone = change_clone_size(clone, num_offspring)
@@ -230,6 +263,7 @@ function mutation!(population::FCPopulation)
     new_classes = Int64[0]
     mut_dist = Poisson(population.landscape.UL)
     for (cli, class) in enumerate(reverse(population.classes));
+    #for (cli, class) in enumerate(population.classes);
         parent_clone_size = class.n
         for (ii, indv) in enumerate(1:class.n);
             num_muts = rand(mut_dist)
@@ -266,6 +300,48 @@ function mutation!(population::FCPopulation)
 end
 
 
+function mutation_dict!(population::FCPopulation)
+    # randomly adds Poisson(UL) mutations to each individual.
+    # there is a smarter way to do this.
+
+    new_classes = Dict{Int64,Int64}()
+
+    mut_dist = Poisson(population.landscape.UL)
+    for (cli, class) in enumerate(population.classes);
+        parent_clone_size = class.n
+        for (ii, indv) in enumerate(1:class.n);
+            num_muts = rand(mut_dist)
+            if num_muts > 0
+                parent_clone_size -= 1
+                if ((class.bg_mutations + num_muts) in keys(new_classes))
+                    #println("ok, $(class.bg_mutations), $num_muts, $base_mutations, $(length(new_classes))")
+                    new_classes[class.bg_mutations + num_muts] += 1
+                else
+                    new_classes[class.bg_mutations + num_muts] = 1
+                end
+
+                #push!(new_clones, Clone(1, clone.bg_mutations + num_muts, clone.loci))
+            end
+        end
+        if parent_clone_size != 0
+            if (class.bg_mutations in keys(new_classes))
+                new_classes[class.bg_mutations] += parent_clone_size
+            else
+                new_classes[class.bg_mutations] = parent_clone_size
+            end
+        end
+    end
+    # update clone list
+    #println("$(population.generation), $(sum([x.n for x in population.classes])), $(length(keys(new_classes)))")
+    #println("$new_classes")
+    population.classes = FitnessClass[]
+    for (cli, class) in enumerate(keys(new_classes));
+        if new_classes[class] != 0
+            push!(population.classes, FitnessClass(new_classes[class], class, [0,0]))
+        end
+    end
+end
+
 function cleanup!(population::Population)
     # idiotproofing function that removes empty clones
     for (cli, clone) in enumerate(population.clones);
@@ -281,9 +357,15 @@ function evolve!(population::Population)
     population.generation += 1
 end
 
-function evolve!(population::FCPopulation)
+function evolve_list!(population::FCPopulation)
     selection!(population)
     mutation!(population)
+    population.generation += 1
+end
+
+function evolve_dict!(population::FCPopulation)
+    selection!(population)
+    mutation_dict!(population)
     population.generation += 1
 end
 
