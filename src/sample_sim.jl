@@ -6,66 +6,26 @@
 ## Basic implementation of WaveFit.jl
 
 using Revise
-#using Profile, ProfileView
-using ProfileView
-using Distributions, WaveFit
+using WaveFit
+using Profile
+using Distributions
+using Stats
 
 const K = 1000 # carrying capacity
 
 const sigma = .05
 const delta = .01
-const s = .1
+const s = .01
 const UL = 100
 const mu = 1e-4
 
 landscape = Landscape(sigma, delta, s, UL, [mu,mu])
 pop = Population(K,landscape)
 
-# tic()
-#
-# for i in 1:10;
-#     evolve!(pop)
-#     if i%100 == 0
-#         println("$i $(length(pop.clones))")
-#     end
-# end
-#
-# toc()
-
-fcpop = FCPopulation(K,landscape)
-
-Nhist = []
-#tic()
-println("list method")
-@profile (for j = 1:2;
-for i in 1:1000;
-    evolve_list!(fcpop)
-    #push!(Nhist, sum([x.n for x in fcpop.classes]))
-    #if i%100 == 0
-    #    println("$i $(length(fcpop.classes)) $(sum([x.n for x in fcpop.classes])), $(get_mean_fitness(fcpop))")
-    #end
-end
+@time (
+for i in 1:10000;
+    evolve!(pop)
 end)
-println("list method profile")
-Profile.print()
 
-#toc()
-
-fcpop = FCPopulation(K,landscape)
-
-Nhist = []
-#tic()
-
-println("dict method")
-@profile (for j = 1:2;
-for i in 1:1000;
-    evolve_dict!(fcpop)
-    #push!(Nhist, sum([x.n for x in fcpop.classes]))
-    #if i%100 == 0
-    #    println("$i $(length(fcpop.classes)) $(sum([x.n for x in fcpop.classes])), $(get_mean_fitness(fcpop))")
-    #end
-end
-end)
-println("dict method profile")
-Profile.print()
-#toc()
+using Plots
+bar([c.bg_mutations for c in values(pop.classes)], [c.n for c in values(pop.classes)])
