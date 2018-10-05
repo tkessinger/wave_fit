@@ -28,4 +28,5 @@ for i in 1:10000;
 end)
 
 using Plots
+# plot the distribution of background mutations
 bar([c.bg_mutations for c in values(pop.classes)], [c.n for c in values(pop.classes)])
