@@ -19,22 +19,24 @@ struct Landscape
     σ::Float64
     δ::Float64
     s::Float64
+    β::Float64
     UL::Float64
     μ::Array{Float64,1}
 
-    Landscape() = new(1e-6,0.001,0.01,10,[1e-4,1e-4])
-    Landscape(σ,δ,s,UL,μ) = new(σ,δ,s,UL,μ)
+    Landscape() = new(1e-6, 0.001, 0.01, 1.0, 10, [1e-4, 1e-4])
+    Landscape(σ, δ, s, β, UL, μ) = new(σ, δ, s, β, UL, μ)
 end
 
 mutable struct FitnessClass
-
     n::Int64
     bg_mutations::Int64
     loci::Array{Int64,1}
+    bg_fitness::Float64
+    loci_fitness::Float64
 
     # constructors
-    FitnessClass(n, bg_mutations, loci) = new(n, bg_mutations, loci)
-    FitnessClass(n) = new(n,0,[0,0])
+    FitnessClass(n, bg_mutations, loci) = new(n, bg_mutations, loci, 0.0, 0.0)
+    FitnessClass(n) = new(n, 0, [0, 0])
     FitnessClass() = FitnessClass(1)
 end
 
@@ -48,58 +50,69 @@ function key(fc::FitnessClass)
 end
 
 mutable struct Population
-    #
-    K::Int64
+    K::Int64    # carrying capacity
+    N::Int64    # population size
     landscape::Landscape
     classes::Dict{Array{Int64,1}, FitnessClass}
+    mean_bg_fitness::Float64
+    mean_loci_fitness::Float64
+    mean_fitness::Float64
+    var_bg_fitness::Float64
     generation::Int64
 
-    Population(K,landscape) = new(K, landscape, Dict(key(FitnessClass(K)) => FitnessClass(K)), 0)
+    Population(K, landscape) = new(K, K, landscape, Dict(key(FitnessClass(K)) => FitnessClass(K)),
+                                   1.0, 1.0, 1.0, 1.0, 0)
     Population(K) = Population(K, Landscape())
 end
 
-function get_mean_fitness(population::Population)
+function loci_fitness(class::FitnessClass, pop::Population)
+    # returns the sign-epistatic fitness for the focal loci
+    return pop.landscape.s*(class.loci[1])*(class.loci[2]) -
+            pop.landscape.δ*(class.loci[1])*(1 - class.loci[2]) -
+            pop.landscape.δ*(1 - class.loci[1])*(class.loci[2])
+end
 
-    mean_bg_fitness = 0
-    mean_loci_fitness = 0
-    mean_fitness = 0
-    var_bg_fitness = 0
-    N = sum([class.n for class in values(population.classes)])
+function calc_fitness!(pop::Population)
+
+    pop.mean_bg_fitness = 0
+    pop.mean_loci_fitness = 0
+    pop.mean_fitness = 0
+    pop.var_bg_fitness = 0
+    pop.N = sum([class.n for class in values(pop.classes)])
 
     # calculate the mean fitness and variance
     # there might be a smarter way to do this other than iterating over all clones twice...
-    for class in values(population.classes)
-        tmp_bg_fit = class.n*class.bg_mutations/N
-        mean_bg_fitness += tmp_bg_fit
-        var_bg_fitness += tmp_bg_fit^2/class.n
-        #mean_loci_fitness += loci_fitness(class, population)*class.n/N
+    for class in values(pop.classes)
+        class.bg_fitness = pop.landscape.β * class.bg_mutations
+        class.loci_fitness = loci_fitness(class, pop)
+        pop.mean_bg_fitness += class.bg_fitness * class.n / pop.N
+        pop.var_bg_fitness += class.bg_fitness^2 * class.n / pop.N
+        pop.mean_loci_fitness += class.loci_fitness * class.n / pop.N
     end
-    if var_bg_fitness > 0
-        mean_bg_fitness *= population.landscape.σ^2/var_bg_fitness
+    pop.var_bg_fitness = pop.var_bg_fitness - pop.mean_bg_fitness^2
+
+    if pop.var_bg_fitness > 0
+        pop.mean_bg_fitness *= pop.landscape.σ / sqrt(pop.var_bg_fitness)
     end
 
-    mean_fitness = mean_bg_fitness + mean_loci_fitness
-
-    return [mean_bg_fitness, mean_fitness, var_bg_fitness]
-
+    pop.mean_fitness = pop.mean_bg_fitness + pop.mean_loci_fitness
 end
 
-function selection!(population::Population)
+function selection!(pop::Population)
     # generates a Poisson-distributed offspring number for each class
     # still todo: incorporate the focal loci
 
-    N = sum([class.n for class in values(population.classes)])
-    (mean_bg_fitness, mean_fitness, var_bg_fitness) = get_mean_fitness(population)
+    calc_fitness!(pop)
 
     # poisson offspring number distribution dependent on K and the fitness
     # the K/N term keeps the population size around K
-    for (k, class) in population.classes
-        bg_fitness = 1.0*class.bg_mutations
-        if var_bg_fitness > 0
-           bg_fitness *= population.landscape.σ^2/var_bg_fitness
+    for (k, class) in pop.classes
+        bg_fitness = class.bg_fitness
+        if pop.var_bg_fitness > 0
+           bg_fitness *= pop.landscape.σ/sqrt(var_bg_fitness)
         end
-        total_fitness = bg_fitness# + loci_fitness(clone, population)
-        offspring_dist = Poisson(max(class.n*(1+total_fitness-mean_fitness)*population.K/N,0.0))
+        total_fitness = bg_fitness + class.loci_fitness
+        offspring_dist = Poisson(max(class.n * (1 + total_fitness - pop.mean_fitness) * pop.K / pop.N, 0.0))
         #offspring_dist = Poisson(max(class.n*(1+total_fitness)/(1+mean_fitness)*population.K/N,0.0))
 
         num_offspring = rand(offspring_dist)
@@ -107,20 +120,19 @@ function selection!(population::Population)
 
         # prune any empty fitness classes
         if class.n == 0
-            pop!(population.classes, k)
+            pop!(pop.classes, k)
         end
     end
 end
 
-function mutation!(population::Population)
+function mutation!(pop::Population)
     # randomly adds Poisson(UL) mutations to each individual.
-    # there is a smarter way to do this.
 
-    mut_dist = Poisson(population.landscape.UL)
-    # get the set of keys from the fitness class dict (NEED to `collect`)
-    ks = collect(keys(population.classes))
+    mut_dist = Poisson(pop.landscape.UL)
+    # get the set of keys from the fitness class dict (`collect` is faster)
+    ks = collect(keys(pop.classes))
     for k in ks
-        class = population.classes[k]
+        class = pop.classes[k]
         tempclass = copy(class)
         for indv in 1:class.n;
             num_muts = rand(mut_dist)
@@ -128,26 +140,26 @@ function mutation!(population::Population)
                 class.n -= 1
                 tempclass.bg_mutations = class.bg_mutations + num_muts
                 tempk = key(tempclass)
-                if (tempk in keys(population.classes))
-                    population.classes[tempk].n += 1
+                if (tempk in keys(pop.classes))
+                    pop.classes[tempk].n += 1
                 else
-                    population.classes[tempk] = copy(tempclass)
-                    population.classes[tempk].n = 1
+                    pop.classes[tempk] = copy(tempclass)
+                    pop.classes[tempk].n = 1
                 end
             end
         end
 
         # class is empty now, so delete it
         if class.n == 0
-            pop!(population.classes, k)
+            pop!(pop.classes, k)
         end
     end
 end
 
-function evolve!(population::Population)
-    selection!(population)
-    mutation!(population)
-    population.generation += 1
+function evolve!(pop::Population)
+    selection!(pop)
+    mutation!(pop)
+    pop.generation += 1
 end
 
 # final end statement to close the module
