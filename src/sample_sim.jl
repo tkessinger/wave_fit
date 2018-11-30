@@ -6,66 +6,57 @@
 ## Basic implementation of WaveFit.jl
 
 using Revise
-#using Profile, ProfileView
-using ProfileView
-using Distributions, WaveFit
+using WaveFit
+#using Profile
+using Distributions
+using Stats
 
-const K = 1000 # carrying capacity
+const K = 10000 # carrying capacity
 
 const sigma = .05
-const delta = .01
-const s = .1
-const UL = 100
-const mu = 1e-4
+const delta = .001
+const s = .01
+const UL = 10
+const beta = 0.01
+const mu = 0.0
 
-landscape = Landscape(sigma, delta, s, UL, [mu,mu])
+numgens = 100000
+
+landscape = Landscape(sigma, delta, s, UL, beta, [mu,mu])
 pop = Population(K,landscape)
 
-# tic()
-#
-# for i in 1:10;
-#     evolve!(pop)
-#     if i%100 == 0
-#         println("$i $(length(pop.clones))")
-#     end
-# end
-#
-# toc()
-
-fcpop = FCPopulation(K,landscape)
-
-Nhist = []
-#tic()
-println("list method")
-@profile (for j = 1:2;
-for i in 1:1000;
-    evolve_list!(fcpop)
-    #push!(Nhist, sum([x.n for x in fcpop.classes]))
-    #if i%100 == 0
-    #    println("$i $(length(fcpop.classes)) $(sum([x.n for x in fcpop.classes])), $(get_mean_fitness(fcpop))")
-    #end
+@time (
+#while get_frequencies(pop)[2] < 0.5
+for i in 1:numgens;
+    evolve!(pop)
+    if (pop.generation%(numgens/10) == 0)
+        #bar([c.bg_mutations for c in values(pop.classes)], [c.n for c in values(pop.classes)],yscale=:log10)
+        #bg_muts = [c.bg_mutations for c in values(pop.classes)]
+        #println(maximum(bg_muts) - minimum(bg_muts))
+        println(pop.generation)
+    end
 end
-end)
-println("list method profile")
-Profile.print()
+)
+println("$K $numgens")
 
-#toc()
+landscape = Landscape(sigma, delta, s, UL, beta, [mu,mu])
+pop = Population(K,landscape)
 
-fcpop = FCPopulation(K,landscape)
-
-Nhist = []
-#tic()
-
-println("dict method")
-@profile (for j = 1:2;
-for i in 1:1000;
-    evolve_dict!(fcpop)
-    #push!(Nhist, sum([x.n for x in fcpop.classes]))
-    #if i%100 == 0
-    #    println("$i $(length(fcpop.classes)) $(sum([x.n for x in fcpop.classes])), $(get_mean_fitness(fcpop))")
-    #end
+@time (
+#while get_frequencies(pop)[2] < 0.5
+for i in 1:numgens;
+    evolve_multi!(pop)
+    if (pop.generation%(numgens/10) == 0)
+        #bar([c.bg_mutations for c in values(pop.classes)], [c.n for c in values(pop.classes)],yscale=:log10)
+        #bg_muts = [c.bg_mutations for c in values(pop.classes)]
+        #println(maximum(bg_muts) - minimum(bg_muts))
+        println(pop.generation)
+    end
 end
-end)
-println("dict method profile")
-Profile.print()
-#toc()
+)
+println("$K $numgens")
+
+
+#using Plots
+# plot the distribution of background mutations
+#bar([c.bg_mutations for c in values(pop.classes)], [c.n for c in values(pop.classes)],yscale=:log10)
