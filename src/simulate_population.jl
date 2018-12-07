@@ -54,7 +54,7 @@ function main(args)
 
     parsed_args = parse_args(s)
 
-    K = floor.(Int64,parsed_args["K"])
+    K = round.(Int64,parsed_args["K"])
 
     job_name, sigma, delta, s, UL, beta, mu1, mu2, file, num_crossings =
         parsed_args["job_name"], parsed_args["sigma"], parsed_args["delta"],

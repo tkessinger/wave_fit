@@ -248,9 +248,8 @@ function focal_mutation!(pop::Population)
         println(single_mut)
     end
 
-
     sm_dist = Poisson(single_mut*pop.landscape.μ[2])
-    s_muts = rand(sm_dist)
+    sm_muts = rand(sm_dist)
     sm_classes = FitnessClass[]
     for (k, class) in pop.classes
         if class.loci[2] == 0 && class.loci[1] != 0
@@ -259,7 +258,7 @@ function focal_mutation!(pop::Population)
     end
     if length(sm_classes) > 0
         probabilities = weights(1.0*[x.n for x in sm_classes])
-        classes_to_mutate = sample(sm_classes, probabilities, s_muts)
+        classes_to_mutate = sample(sm_classes, probabilities, sm_muts)
         for cl in classes_to_mutate
             if [cl.bg_mutations, 1, 1] in keys(pop.classes)
                 pop.classes[[cl.bg_mutations, 1, 1]].n += 1
