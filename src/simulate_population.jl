@@ -10,7 +10,7 @@ using WaveFit
 using Distributions
 using Stats
 using ArgParse, JLD
-
+using Dates
 
 function main(args)
 
@@ -73,6 +73,7 @@ function main(args)
 
     crossing_times = []
 
+    println(now())
     for i in 1:num_crossings
         pop = Population(K,landscape)
         while get_frequencies(pop)[2] < 0.5
@@ -81,6 +82,7 @@ function main(args)
                 pop.landscape = Landscape(sigma, delta, s, UL, beta, [mu1, mu2])
             end
         end
+        println(now())
         push!(crossing_times, pop.generation-burn_time)
         file = ismatch(r"\.jld", outfile) ? outfile : outfile*".jld"
         save("output/vc_sims/$file", "crossing_times", crossing_times, "params", params)
