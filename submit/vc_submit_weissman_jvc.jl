@@ -61,7 +61,7 @@ function weissman_fig(fig_to_make)
                 # run the scripts via sbatch
                 # the "split" wizardry is needed due to the fine distinction between Cmd and String types
                 print("sbatch $simstr\n")
-                #run(`sbatch $(split(simstr))`)
+                run(`sbatch $(split(simstr))`)
         end
 end
 
