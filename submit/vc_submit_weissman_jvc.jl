@@ -9,8 +9,6 @@
 ##
 ## JVC: playing around. updated to Julia v1
 
-using JLD
-
 function weissman_fig(fig_to_make)
         slist = [0.1]
         sigmalist = [0.5,1e-1,0.05,1e-2,1e-8]
