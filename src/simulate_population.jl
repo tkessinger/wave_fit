@@ -6,10 +6,10 @@
 ## Uses WaveFit to perform simple valley crossing simulations.
 
 #using Revise
-using WaveFit
+include("WaveFit.jl")
+using .WaveFit
 using Distributions
-using Stats
-using ArgParse, JLD
+using ArgParse, JLD2
 using Dates
 
 function main(args)
@@ -73,7 +73,8 @@ function main(args)
 
     crossing_times = []
 
-    println(now())
+    df = DateFormat("yyyy.mm.dd HH:MM:SS")
+    println(Dates.format(now(), df))
     for i in 1:num_crossings
         pop = Population(K,landscape)
         while get_frequencies(pop)[2] < 0.5
@@ -82,10 +83,10 @@ function main(args)
                 pop.landscape = Landscape(sigma, delta, s, UL, beta, [mu1, mu2])
             end
         end
-        println(now())
+        println(Dates.format(now(), df))
         push!(crossing_times, pop.generation-burn_time)
-        file = ismatch(r"\.jld", outfile) ? outfile : outfile*".jld"
-        save("output/vc_sims/$file", "crossing_times", crossing_times, "params", params)
+        file = occursin(r"\.jld2$", outfile) ? outfile : outfile*".jld2"
+        @save "output/vc_sims/$file" crossing_times params
     end
 end
 

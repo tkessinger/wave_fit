@@ -24,7 +24,7 @@ function weissman_fig(fig_to_make)
                 mu1list = [1e-5]
                 mu2list = [1e-6]
                 deltalist = [7e-3]
-        elseif fig_to_make= 3
+        elseif fig_to_make == 3
                 Klist = [1e5]
                 mu1list = [1e-6]
                 mu2list = [4e-5]
