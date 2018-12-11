@@ -12,8 +12,8 @@ export Clone
 export Population, Landscape
 export FitnessClass
 export get_mean_fitness, get_frequencies
-export copy
 
+import Base: copy, copy!
 using Distributions, Combinatorics, StatsBase
 
 mutable struct Landscape
@@ -45,6 +45,12 @@ function copy(fc::FitnessClass)
     return FitnessClass(fc.n, fc.bg_mutations, fc.loci)
 end
 
+function copy!(fc_to::FitnessClass, fc_from::FitnessClass)
+    fc_to.n = fc_from.n
+    fc_to.bg_mutations = fc_from.bg_mutations
+    fc_to.loci .= fc_from.loci
+end
+
 # generate a key from a FitnessClass as an array
 function key(fc::FitnessClass)
     return vcat([fc.bg_mutations], fc.loci)
@@ -66,6 +72,10 @@ mutable struct Population
     Population(K) = Population(K, Landscape())
 end
 
+function calc_pop_size!(pop::Population)
+    pop.N = sum([class.n for class in values(pop.classes)])
+end
+
 function loci_fitness(class::FitnessClass, pop::Population)
     # returns the sign-epistatic fitness for the focal loci
     return pop.landscape.s*(class.loci[1])*(class.loci[2]) -
@@ -79,7 +89,6 @@ function calc_fitness!(pop::Population)
     pop.mean_loci_fitness = 0
     pop.mean_fitness = 0
     pop.var_bg_fitness = 0
-    pop.N = sum([class.n for class in values(pop.classes)])
 
     # calculate the mean fitness and variance
     # there might be a smarter way to do this other than iterating over all clones twice...
@@ -99,14 +108,11 @@ function calc_fitness!(pop::Population)
     pop.mean_fitness = pop.mean_bg_fitness + pop.mean_loci_fitness
 end
 
-function calc_pop_size!(pop::Population)
-    pop.N = sum([class.n for class in values(pop.classes)])
-end
-
 function selection!(pop::Population)
     # generates a Poisson-distributed offspring number for each class
     # still todo: incorporate the focal loci
 
+    calc_pop_size!(pop)
     calc_fitness!(pop)
     # poisson offspring number distribution dependent on K and the fitness
     # the K/N term keeps the population size around K
@@ -135,12 +141,13 @@ function mutation!(pop::Population)
     # randomly adds Poisson(UL) mutations to each individual.
 
     mut_dist = Poisson(pop.landscape.UL)
-    # get the set of keys from the fitness class dict (`collect` is faster)
-    ks = collect(keys(pop.classes))
-    for k in ks
+
+    # capture class keys and their sizes and iterate over each class
+    keys_ns = [(k, pop.classes[k].n) for k in keys(pop.classes)]
+    for (k, n) in keys_ns
         class = pop.classes[k]
         tempclass = copy(class)
-        for indv in 1:class.n;
+        for indv in 1:n
             num_muts = rand(mut_dist)
             if num_muts > 0
                 class.n -= 1
@@ -149,6 +156,7 @@ function mutation!(pop::Population)
                 if (tempk in keys(pop.classes))
                     pop.classes[tempk].n += 1
                 else
+                    # the `copy` here is important
                     pop.classes[tempk] = copy(tempclass)
                     pop.classes[tempk].n = 1
                 end
@@ -170,22 +178,24 @@ function mutation_multinomial!(pop::Population)
 
     muts_to_assign_dist = Multinomial(num_muts, [x.n for x in values(pop.classes)]/pop.N)
     muts_to_assign = rand(muts_to_assign_dist)
-    # get the set of keys from the fitness class dict (`collect` is faster)
-    ks = collect(keys(pop.classes))
-    for (ki, k) in enumerate(ks)
+
+    # capture class keys and their sizes and iterate over each class
+    kis_keys_ns = [(ki, k, pop.classes[k].n) for (ki, k) in enumerate(keys(pop.classes))]
+    for (ki, k, n) in kis_keys_ns
         class = pop.classes[k]
         tempclass = copy(class)
         tmp_muts = muts_to_assign[ki]
-        tmp_mut_dist = Multinomial(tmp_muts, class.n)
+        tmp_mut_dist = Multinomial(tmp_muts, n)
         class_muts = rand(tmp_mut_dist)
-        for (ii, indv) in enumerate(1:class.n)
-            if class_muts[ii] > 0
+        for i in 1:n
+            if class_muts[i] > 0
                 class.n -= 1
-                tempclass.bg_mutations = class.bg_mutations + class_muts[ii]
+                tempclass.bg_mutations = class.bg_mutations + class_muts[i]
                 tempk = key(tempclass)
                 if (tempk in keys(pop.classes))
                     pop.classes[tempk].n += 1
                 else
+                    # the `copy` here is important
                     pop.classes[tempk] = copy(tempclass)
                     pop.classes[tempk].n = 1
                 end
