@@ -52,7 +52,7 @@ function main(args)
             default = "test"
     end
 
-    parsed_args = parse_args(s)
+    parsed_args = parse_args(args, s)
 
     K = round.(Int64,parsed_args["K"])
 
@@ -74,20 +74,21 @@ function main(args)
     crossing_times = []
 
     df = DateFormat("yyyy.mm.dd HH:MM:SS")
-    println(Dates.format(now(), df))
+    println(Dates.format(now(), df), " | start")
     for i in 1:num_crossings
         pop = Population(K,landscape)
         while get_frequencies(pop)[2] < 0.5
-            evolve!(pop)
+            evolve_multi!(pop)
             if pop.generation == burn_time
                 pop.landscape = Landscape(sigma, delta, s, UL, beta, [mu1, mu2])
             end
         end
-        println(Dates.format(now(), df))
         push!(crossing_times, pop.generation-burn_time)
+        println(Dates.format(now(), df), " | crossing time: ", pop.generation-burn_time)
+        flush(stdout)
         file = occursin(r"\.jld2$", outfile) ? outfile : outfile*".jld2"
         @save "output/vc_sims/$file" crossing_times params
     end
 end
 
-main(ARGS)
+#main(ARGS)
