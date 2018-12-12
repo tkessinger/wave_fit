@@ -13,7 +13,6 @@ export Population, Landscape
 export FitnessClass
 export get_mean_fitness, get_frequencies
 
-import Base: copy, copy!
 using Distributions, Combinatorics, StatsBase
 
 mutable struct Landscape
@@ -41,11 +40,11 @@ mutable struct FitnessClass
     FitnessClass() = FitnessClass(1)
 end
 
-function copy(fc::FitnessClass)
+function Base.copy(fc::FitnessClass)
     return FitnessClass(fc.n, fc.bg_mutations, fc.loci)
 end
 
-function copy!(fc_to::FitnessClass, fc_from::FitnessClass)
+function Base.copy!(fc_to::FitnessClass, fc_from::FitnessClass)
     fc_to.n = fc_from.n
     fc_to.bg_mutations = fc_from.bg_mutations
     fc_to.loci .= fc_from.loci
@@ -170,6 +169,41 @@ function mutation!(pop::Population)
     end
 end
 
+function mutation_v2!(pop::Population)
+    # randomly adds Poisson(UL) mutations to each individual.
+
+    mut_dist = Poisson(pop.landscape.UL)
+    num_muts = rand(mut_dist, pop.N)
+
+    # capture class keys and their sizes and iterate over each class
+    keys_ns = [(k, pop.classes[k].n) for k in keys(pop.classes)]
+    i = 0
+    for (k, n) in keys_ns
+        class = pop.classes[k]
+        tempclass = copy(class)
+        for indv in 1:n
+            i += 1
+            if num_muts[i] > 0
+                class.n -= 1
+                tempclass.bg_mutations = class.bg_mutations + num_muts[i]
+                tempk = key(tempclass)
+                if (tempk in keys(pop.classes))
+                    pop.classes[tempk].n += 1
+                else
+                    # the `copy` here is important
+                    pop.classes[tempk] = copy(tempclass)
+                    pop.classes[tempk].n = 1
+                end
+            end
+        end
+
+        # class is empty now, so delete it
+        if class.n == 0
+            pop!(pop.classes, k)
+        end
+    end
+end
+
 function mutation_multinomial!(pop::Population)
     # randomly adds Poisson(UL) mutations to each individual.
 
@@ -209,6 +243,92 @@ function mutation_multinomial!(pop::Population)
     end
 end
 
+function mutation_multinomial_v2!(pop::Population)
+    # randomly adds Poisson(UL) mutations to each individual
+
+    mut_dist = Poisson(pop.N*pop.landscape.UL)
+    total_muts = rand(mut_dist)
+
+    # create multinomial sample
+    # (empirical evidence suggests this might be faster than
+    #  Multinomial(n,k) for 10n<=k)
+    num_muts = zeros(Int64, pop.N)
+    for i = 1:total_muts
+        num_muts[rand(1:pop.N)] += 1
+    end
+
+    # capture class keys and their sizes and iterate over each class
+    keys_ns = [(k, pop.classes[k].n) for k in keys(pop.classes)]
+
+    # iterate over each individual and update its fitness class
+    i = 0
+    for (k, n) in keys_ns
+        class = pop.classes[k]
+        tempclass = copy(class)
+        for indv in 1:n
+            i += 1
+            if num_muts[i] > 0
+                class.n -= 1
+                tempclass.bg_mutations = class.bg_mutations + num_muts[i]
+                tempk = key(tempclass)
+                if (tempk in keys(pop.classes))
+                    pop.classes[tempk].n += 1
+                else
+                    # the `copy` here is important
+                    pop.classes[tempk] = copy(tempclass)
+                    pop.classes[tempk].n = 1
+                end
+            end
+        end
+
+        # class is empty now, so delete it
+        if class.n == 0
+            pop!(pop.classes, k)
+        end
+    end
+end
+
+function mutation_multinomial_v3!(pop::Population)
+    # randomly adds Poisson(UL) mutations to each individual
+
+    mut_dist = Poisson(pop.N*pop.landscape.UL)
+    total_muts = rand(mut_dist)
+
+    # create multinomial sample
+    # (empirical evidence suggests this might be faster than
+    #  Multinomial(n,k) for 10n>=k)
+    num_muts = rand(Multinomial(total_muts, pop.N))
+
+    # capture class keys and their sizes and iterate over each class
+    keys_ns = [(k, pop.classes[k].n) for k in keys(pop.classes)]
+
+    # iterate over each individual and update its fitness class
+    i = 0
+    for (k, n) in keys_ns
+        class = pop.classes[k]
+        tempclass = copy(class)
+        for indv in 1:n
+            i += 1
+            if num_muts[i] > 0
+                class.n -= 1
+                tempclass.bg_mutations = class.bg_mutations + num_muts[i]
+                tempk = key(tempclass)
+                if (tempk in keys(pop.classes))
+                    pop.classes[tempk].n += 1
+                else
+                    # the `copy` here is important
+                    pop.classes[tempk] = copy(tempclass)
+                    pop.classes[tempk].n = 1
+                end
+            end
+        end
+
+        # class is empty now, so delete it
+        if class.n == 0
+            pop!(pop.classes, k)
+        end
+    end
+end
 
 function get_frequencies(pop::Population)
     freqs = Float64[0.0,0.0]
