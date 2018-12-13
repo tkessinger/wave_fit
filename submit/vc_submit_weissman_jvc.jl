@@ -45,7 +45,7 @@ function weissman_fig(fig_to_make)
 
         for p in 1:nsets
 
-                simstr = "src/simulate_population.jl"
+                simstr = "simulate_population.jl"
 
                 # create filname base from basename and run number
                 numstr = lpad(string(p), length(string(nsets)), "0")
@@ -59,7 +59,7 @@ function weissman_fig(fig_to_make)
                 # run the scripts via sbatch
                 # the "split" wizardry is needed due to the fine distinction between Cmd and String types
                 print("sbatch $simstr\n")
-                run(`sbatch $(split(simstr))`)
+                #run(`sbatch $(split(simstr))`)
         end
 end
 

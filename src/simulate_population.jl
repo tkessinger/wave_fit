@@ -6,8 +6,8 @@
 ## Uses WaveFit to perform simple valley crossing simulations.
 
 #using Revise
-include("WaveFit.jl")
-using .WaveFit
+#include("WaveFit.jl")
+using WaveFit
 using Distributions
 using ArgParse, JLD2
 using Dates
@@ -45,8 +45,11 @@ function main(args)
             arg_type=Float64
             default=1e-5
         "--num_crossings"
-            arg_type =Int64
+            arg_type=Int64
             default=100
+        "--burn_factor"
+            arg_type=Float64
+            default=0.5
         "--file"
             arg_type=AbstractString
             default = "test"
@@ -54,22 +57,20 @@ function main(args)
 
     parsed_args = parse_args(args, s)
 
-    K = round.(Int64,parsed_args["K"])
-
-    job_name, sigma, delta, s, UL, beta, mu1, mu2, file, num_crossings =
-        parsed_args["job_name"], parsed_args["sigma"], parsed_args["delta"],
-        parsed_args["s"], parsed_args["UL"], parsed_args["beta"],
+    job_name, K, sigma, delta, s, UL, beta, mu1, mu2, outfile, num_crossings, burn_factor =
+        parsed_args["job_name"], parsed_args["K"], parsed_args["sigma"],
+        parsed_args["delta"], parsed_args["s"], parsed_args["UL"], parsed_args["beta"],
         parsed_args["mu1"], parsed_args["mu2"], parsed_args["file"],
-        parsed_args["num_crossings"]
+        parsed_args["num_crossings"], parsed_args["burn_factor"]
 
-    params = parsed_args
+    println("-----------")
+    foreach(p -> println(p[1], ": ", p[2]), parsed_args)
+    println("-----------")
 
-    burn_time = K/10
-
+    K = round(Int64, K)
+    burn_time = round(Int64, K * burn_factor)
     landscape = Landscape(sigma, delta, s, UL, beta, [0.0, 0.0])
     pop = Population(K,landscape)
-
-    outfile = file
 
     crossing_times = []
 
@@ -87,8 +88,8 @@ function main(args)
         println(Dates.format(now(), df), " | crossing time: ", pop.generation-burn_time)
         flush(stdout)
         file = occursin(r"\.jld2$", outfile) ? outfile : outfile*".jld2"
-        @save "output/vc_sims/$file" crossing_times params
+        @save "$file" crossing_times parsed_args
     end
 end
 
-#main(ARGS)
+main(ARGS)
