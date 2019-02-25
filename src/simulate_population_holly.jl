@@ -1,19 +1,17 @@
-#!/usr/bin/env julia
+#!/usr/bin/julia
 
 # Set your minimum acceptable walltime, format: day-hours:minutes:seconds
-#SBATCH --time=30-00:00:00
+#SBATCH --time=1-00:00:00
 
 # Set name of job shown in squeue
-#SBATCH --job-name var_s_delta.jl
+#SBATCH --job-name sample_gaussian.jl
 
 # Request CPU resources
-#SBATCH -p Long
-#SBATCH --ntasks=1
-#SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=1
+#SBATCH --qos=max40
+#SBATCH --ntasks=2
+#SBATCH --ntasks-per-node=2
+#SBATCH --cpus-per-task=2
 #SBATCH --account=8e300-jva238-lowprio
-
-## simulate_population.jl
 ##
 ## Author: Taylor Kessinger <taylor.kessinger@uky.edu>
 ## Uses WaveFit to perform simple valley crossing simulations.
@@ -108,7 +106,7 @@ function main(args)
         println(Dates.format(now(), df), " | crossing time: ", pop.generation-burn_time)
         flush(STDOUT)
         file = ismatch(r"\.jld2", outfile) ? outfile : outfile*".jld2"
-        @save "output/vc_sims/$file" crossing_times parsed_args seed
+        @save "/scratch/tke235/output/vc_sims/$file" crossing_times parsed_args seed
     end
 end
 

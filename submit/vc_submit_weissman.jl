@@ -9,11 +9,12 @@
 
 using JLD
 
-fig_to_make = 4
+#fig_to_make = 2
 
 function weissman_fig(fig_to_make)
         slist = [0.1]
-        sigmalist = [1e-2,1e-8]
+        sigmalist = [5e-1,1e-1,5e-2,1e-2,1e-8]
+        UL_list = [0.1]
         if fig_to_make == 1
                 Klist = collect(logspace(2,6,9))
                 mu1list = [1e-5]
@@ -28,7 +29,7 @@ function weissman_fig(fig_to_make)
                 Klist = [1e5]
                 mu1list = [1e-6]
                 mu2list = [4e-5]
-                deltalist = [-1e-3,-5e-3,-1e-3,0,1e-3,5e-3,1e-2]
+                deltalist = [-1e-3,-5e-3,-1e-3,-5e-4,-1e-4,0,1e-4,5e-4,1e-3,5e-3,1e-2]
         elseif fig_to_make == 4
                 Klist = [1e5]
                 mu1list = [1e-6]
@@ -37,8 +38,8 @@ function weissman_fig(fig_to_make)
         end
 
         # take the Cartesian product of all parameter combinations
-        pars = ["sigma", "K", "mu1", "mu2", "s", "delta"]
-        parvals = [sigmalist, Klist, mu1list, mu2list, slist, deltalist]
+        pars = ["sigma", "K", "mu1", "mu2", "s", "delta", "UL"]
+        parvals = [sigmalist, Klist, mu1list, mu2list, slist, deltalist, UL_list]
         parsets = collect(Base.product(parvals...))
 
         nsets = length(parsets)
@@ -65,4 +66,6 @@ function weissman_fig(fig_to_make)
         end
 end
 
-weissman_fig(fig_to_make)
+weissman_fig(2)
+weissman_fig(3)
+weissman_fig(4)

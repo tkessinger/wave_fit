@@ -9,58 +9,57 @@
 #ENV["PLOTS_USE_ATOM_PLOTPANE"] = "false"
 
 using PyPlot, JLD, Glob, WaveFit, LaTeXStrings
-gr()
 
-function load_and_plot(namestring::AbstractString)
-    if namestring == "seq_fix"
-        K = floor.(Int64, 1e4)
-    elseif namestring == "neut_tunnel"
-        K = floor.(Int64, 1e5)
-    end
-    files = glob("output/vc_sims/" * namestring * "_UL_*.jld")
+date = "20190109"
+
+    files = glob("output/vc_sims/" * date * "_var_UL_*_*.jld2")
     # glob all the output files
 
-    # keys for this dict will be K value and s_u value
-    sigmalist = collect(logspace(-5,-1,9))
+    crossing_times = Dict()
 
-    all_results = Array{Int64,1}[]
-    UL_list = []
-    # open files and fill dict
-    for (fi, file) in enumerate(files)
-        #println("$file")
+    for file in files
         f = load(file)
-        results = convert(Array{Int64,1},f["crossing_times"])
-        UL = f["params"]["UL"]
-        #results -= K/10
-        push!(all_results, results)
-        push!(UL_list, UL)
+        #println(f["params"])
+        params = f["parsed_args"]
+        sigma, UL, N = params["sigma"], params["UL"], params["K"]
+        if (sigma, UL, N) in keys(crossing_times)
+            [push!(crossing_times[(sigma, UL, N)], x) for x in f["crossing_times"]]
+        else
+            crossing_times[(sigma, UL, N)] = f["crossing_times"]
+        end
+        println("$file, $sigma, $UL, $N, $(length(f["crossing_times"])), $(mean(f["crossing_times"]))")
+    end
+    sigmalist = sort(unique([x[1] for x in keys(crossing_times)]))
+    UL_list = sort(unique([x[2] for x in keys(crossing_times)]))
+    Nlist = sort(unique([x[3] for x in keys(crossing_times)]))
+
+    tau_grid = zeros(length(sigmalist), length(UL_list), length(Nlist))
+
+    for (si, sigma) in enumerate(sigmalist)
+        for (ui, UL) in enumerate(UL_list)
+            for (Ni, N) in enumerate(Nlist)
+                if (sigma, UL, N) in keys(crossing_times)
+                    tau_grid[si,ui,Ni] = mean(crossing_times[(sigma,UL,N)])
+                end
+            end
+        end
     end
 
-    #fig = figure()
-    #ax = fig[:add_subplot](1,1,1)
-    #display(plot(sigmalist, [mean(x) for x in all_results], xaxis=:log, yaxis=:log))
-
-    return (sigmalist, UL_list, all_results)
+figure()
+for (si, sigma) in enumerate(sigmalist)
+    for (ui, UL) in enumerate(UL_list)
+    ax = errorbar(Nlist, [mean(x) for x in tau_grid[si,ui,:]],
+        yerr = [std(x) for x in tau_grid[si,ui,:]],
+        label = latexstring("\$UL = $UL, \\sigma = 10^{$(round(Int64,log10(sigma)))}\$"))
+    end
 end
-sigmalist, UL_list, nt_results = load_and_plot("neut_tunnel")
-UL_vals = unique(UL_list)
-#display(
-fig = figure()
 
-for (ii, i) in enumerate(UL_vals)
-    ax = errorbar(
-        sigmalist,
-        [mean(x) for x in nt_results[((ii-1)*length(sigmalist)+1):ii*length(sigmalist)]],
-        yerr = [1.0*std(x) for x in nt_results[((ii-1)*length(sigmalist)+1):ii*length(sigmalist)]],
-        label = "UL = $i"
-        )
-end
 ax = axes()
 legend(loc=2)
 ylabel(L"$\tau$")
 xlabel(L"$\sigma$")
 xscale("log")
 yscale("log")
-title("neutral tunneling")
-ylim([1e4,1e7])
+ylim([1e2,1e7])
+show()
 #savefig("neut_tunnel.pdf")

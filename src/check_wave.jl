@@ -13,7 +13,7 @@ using ArgParse, JLD
 
 using PyPlot
 
-K = 1000000
+K = 10000
 sigma, delta, s, UL, beta = 1e-2, 1e-2, 1e-2, 100, 1e-2
 
 mu1, mu2 = 0.0, 0.0

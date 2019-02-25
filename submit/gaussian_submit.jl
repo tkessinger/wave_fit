@@ -1,47 +1,44 @@
 #!/usr/bin/env julia
 
-## hoc_submit.jl
+## gaussian_submit.jl
 ##
 ## Author: Taylor Kessinger <taylor.kessinger@uky.edu>
-## Submit script for simulate_population.jl;
-## runs valley crossing sims in batch using SLURM.
+## Submit script for sample_gaussian.jl;
+## generates test population with WaveFit and samples
+## their fitness distributions.
 
 using JLD2, Dates
 
 date = Dates.format(Dates.Date(Dates.now()), "yyyymmdd")
 
-pars = ["sigma", "K", "mu1", "mu2", "delta", "s", "num_crossings", "UL"]
+pars = ["sigma", "K", "UL", "num_samples"]
 #sigmalist = collect(logspace(-5,-1,9))
-sigmalist = [1e-2,1e-6]
+sigmalist = [5e-2,5e-4,5e-6]
 #NGammalist = collect(linspace(.01,.15,8))
 
 jobids = []
 cmd_strings = []
 
 #sulist = 5.0*collect(logspace(-4,-2,10))
-Klist = round.(collect(logspace(3,6,7)),-1)
-#the -1 rounds values to the nearest multiple of 10
-#UL_list = [0.1,1.0,10.0,100.0]
-UL_list = [0.1,1.0,10.0,100.0]
-mu1list = [1e-5]
-mu2list = [1e-4]
-deltalist = [0.0]
-slist = [0.1]
-num_crossings_list = [10]
-parvals = Any[sigmalist, Klist, mu1list, mu2list, deltalist, slist, num_crossings_list, UL_list]
+Klist = round.(collect(logspace(3,6,4)),-1)
+#don't ask me why the -1 is necessary
+UL_list = [0.1,1.0,10.0]
+num_samples_list = [200]
+parvals = Any[sigmalist, Klist, UL_list, num_samples_list]
 # take the Cartesian product of all parameter combinations
+# the Any is needed to keep num_crossings from being forced into a Float64
 parsets = collect(Base.product(parvals...))
 
 nsets = length(parsets)
 
 runs_per_param_comb = 3
 
-basename = date*"_var_UL"
+basename = date*"_sample_gaussian"
 
 for p in 1:nsets
     for runno in 1:runs_per_param_comb
 
-        simstr = "src/simulate_population.jl"
+        simstr = "src/sample_gaussian.jl"
 
         # create filname base from basename and run number
         numstr = lpad(string(p), length(string(nsets)), "0")
@@ -65,8 +62,8 @@ for p in 1:nsets
     end
 end
 
-jid_file = "$(date)_UL_sims_jobids.dat"
-cmd_file = "$(date)_UL_sims_commands.dat"
+jid_file = "$(date)_gaussian_sims_jobids.dat"
+cmd_file = "$(date)_gaussian_sims_commands.dat"
 
 writedlm(jid_file, [[(jobids[(p-1)*runs_per_param_comb+runno], p, runno) for runno in 1:runs_per_param_comb] for p in 1:nsets])
 println("\njob IDs written to file $jid_file\n")

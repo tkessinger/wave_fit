@@ -1,33 +1,18 @@
 #!/usr/bin/env julia
 
-# Set your minimum acceptable walltime, format: day-hours:minutes:seconds
-#SBATCH --time=30-00:00:00
-
-# Set name of job shown in squeue
-#SBATCH --job-name var_s_delta.jl
-
-# Request CPU resources
-#SBATCH -p Long
-#SBATCH --ntasks=1
-#SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=1
-#SBATCH --account=8e300-jva238-lowprio
-
 ## simulate_population.jl
 ##
 ## Author: Taylor Kessinger <taylor.kessinger@uky.edu>
 ## Uses WaveFit to perform simple valley crossing simulations.
 
 #using Revise
+#include("WaveFit.jl")
 using WaveFit
 using Distributions
-using Stats, Dates
 using ArgParse, JLD2
-
+using Dates
 
 function main(args)
-
-    @show args
 
     s = ArgParseSettings(description = "Example 1 for argparse.jl: minimal usage.")
 
@@ -49,7 +34,7 @@ function main(args)
             default=1e-2
         "--UL"
             arg_type=Float64
-            default=1.0
+            default=10.0
         "--beta"
             arg_type=Float64
             default=0.01
@@ -64,13 +49,11 @@ function main(args)
             default=100
         "--burn_factor"
             arg_type=Float64
-            default=0.1
+            default=0.5
         "--file"
             arg_type=AbstractString
             default = "test"
     end
-
-    seed = Base.Random.GLOBAL_RNG.seed
 
     parsed_args = parse_args(args, s)
 
@@ -82,14 +65,11 @@ function main(args)
 
     println("-----------")
     foreach(p -> println(p[1], ": ", p[2]), parsed_args)
-    println("random seed: $seed")
     println("-----------")
-
-    flush(STDOUT)
 
     K = round(Int64, K)
     burn_time = round(Int64, K * burn_factor)
-    landscape = Landscape(sigma, delta, s, beta, UL, [0.0, 0.0])
+    landscape = Landscape(sigma, delta, s, UL, beta, [0.0, 0.0])
     pop = Population(K,landscape)
 
     crossing_times = []
@@ -101,14 +81,14 @@ function main(args)
         while get_frequencies(pop)[2] < 0.5
             evolve_multi!(pop)
             if pop.generation == burn_time
-                pop.landscape = Landscape(sigma, delta, s, beta, UL, [mu1, mu2])
+                pop.landscape = Landscape(sigma, delta, s, UL, beta, [mu1, mu2])
             end
         end
         push!(crossing_times, pop.generation-burn_time)
         println(Dates.format(now(), df), " | crossing time: ", pop.generation-burn_time)
-        flush(STDOUT)
-        file = ismatch(r"\.jld2", outfile) ? outfile : outfile*".jld2"
-        @save "output/vc_sims/$file" crossing_times parsed_args seed
+        flush(stdout)
+        file = occursin(r"\.jld2$", outfile) ? outfile : outfile*".jld2"
+        @save "$file" crossing_times parsed_args
     end
 end
 
