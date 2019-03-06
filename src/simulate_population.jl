@@ -45,7 +45,7 @@ function main(args)
             arg_type=Float64
             default=1e-5
         "--num_crossings"
-            arg_type=Int64
+            arg_type=Float64
             default=100
         "--burn_factor"
             arg_type=Float64
@@ -69,6 +69,7 @@ function main(args)
 
     K = round(Int64, K)
     burn_time = round(Int64, K * burn_factor)
+    num_crossings = round(Int64, num_crossings)
     landscape = Landscape(sigma, delta, s, beta, UL, [0.0, 0.0])
 
     crossing_times = []
