@@ -10,7 +10,9 @@
 ## JVC: playing around. updated to Julia v1
 
 function weissman_fig(fig_to_make)
+        ULlist = [1.0]
         slist = [0.1]
+        num_crossings_list = [50]
         sigmalist = [0.5,1e-1,0.05,1e-2,1e-8]
         if fig_to_make == 1
                 Klist = round.(10 .^range(2, stop=6, length=17))
@@ -35,8 +37,8 @@ function weissman_fig(fig_to_make)
         end
 
         # take the Cartesian product of all parameter combinations
-        pars = ["sigma", "K", "mu1", "mu2", "s", "delta"]
-        parvals = [sigmalist, Klist, mu1list, mu2list, slist, deltalist]
+        pars = ["sigma", "K", "mu1", "mu2", "UL", "s", "delta", "num_crossings"]
+        parvals = [sigmalist, Klist, mu1list, mu2list, ULlist, slist, deltalist, num_crossings_list]
         parsets = collect(Base.product(parvals...))
 
         nsets = length(parsets)

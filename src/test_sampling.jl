@@ -1,4 +1,8 @@
+using StatsKit
+using Revise
 using BenchmarkTools
+using Plots
+using WaveFit
 
 function test_randn(N::Int64, n::Int64)
     x = zeros(N)
@@ -28,11 +32,10 @@ function test_mult_user(N::Int64, n::Int64)
     return rand(Multinomial(n, N))
 end
 
-@btime test_randn(10000, 10000)
-@btime test_alias(10000, 10000)
-@btime test_mult_bare(10000, 10000)
-@btime test_mult_user(10000, 10000)
-
+# @btime test_randn(10000, 10000)
+# @btime test_alias(10000, 10000)
+# @btime test_mult_bare(10000, 10000)
+# @btime test_mult_user(10000, 10000)
 
 function test_r_poisson(λ::Real, n::Int64)
     return rand(Poisson(λ), n)
@@ -47,15 +50,16 @@ function test_alias_poisson(λ::Real, n::Int64)
     return rand(s, n)
 end
 
-@btime test_r_poisson(100, 1000000)
-@btime test_alias_poisson(100, 1000000)
+# @btime test_r_poisson(100, 1000000)
+# @btime test_alias_poisson(100, 1000000)
 
 function grid_bench(Nvals, nvals, func)
     times = zeros(d,d)
     for i = 1:length(Nvals)
         for j = 1:length(nvals)
             println("benching $func at $(Nvals[i]), $(nvals[j])")
-            t = @benchmark $func($Nvals[$i], $nvals[$j])
+            bm = @benchmarkable $func($Nvals[$i], $nvals[$j])
+            t = run(bm, samples=100)
             times[i,j] = median(t).time
         end
     end
@@ -127,29 +131,55 @@ heatmap(
     )
 
 
-function run_mutation(landscape, iters, mfunc)
-    pop = Population(iters, landscape)
+function run_mutation(N, landscape, iters, mfunc)
+    pop = Population(N, landscape)
     for i in 1:iters
         mfunc(pop)
     end
 end
 
 
+N = 1000
+iters = 1000
+
+# UL = 0.1
+landscape = Landscape(1.0, 0.001, 0.1, 0.001, 0.1, [0.0, 0.0])
+println("UL = 0.1")
+print("mutation!                 ")
+@btime run_mutation(N, landscape, iters, mutation!)
+print("mutation_v2!              ")
+@btime run_mutation(N, landscape, iters, mutation_v2!)
+print("mutation_multinomial!     ")
+@btime run_mutation(N, landscape, iters, mutation_multinomial!)
+print("mutation_multinomial_v2!  ")
+@btime run_mutation(N, landscape, iters, mutation_multinomial_v2!)
+print("mutation_multinomial_old! ")
+@btime run_mutation(N, landscape, iters, mutation_multinomial_old!)
 
 # UL = 1
-landscape = Landscape(0.001, 0.001, 0.1, 0.001, 1, [0.0, 0.0])
-
-@btime run_mutation(landscape, 1000, mutation!)
-@btime run_mutation(landscape, 1000, mutation_v2!)
-@btime run_mutation(landscape, 1000, mutation_multinomial!)
-@btime run_mutation(landscape, 1000, mutation_multinomial_v2!)
-@btime run_mutation(landscape, 1000, mutation_multinomial_v3!)
+landscape = Landscape(1.0, 0.001, 0.1, 0.001, 1, [0.0, 0.0])
+println("UL = 1")
+print("mutation!                 ")
+@btime run_mutation(N, landscape, iters, mutation!)
+print("mutation_v2!              ")
+@btime run_mutation(N, landscape, iters, mutation_v2!)
+print("mutation_multinomial!     ")
+@btime run_mutation(N, landscape, iters, mutation_multinomial!)
+print("mutation_multinomial_v2!  ")
+@btime run_mutation(N, landscape, iters, mutation_multinomial_v2!)
+print("mutation_multinomial_old! ")
+@btime run_mutation(N, landscape, iters, mutation_multinomial_old!)
 
 # UL = 10
-landscape = Landscape(0.001, 0.001, 0.1, 0.001, 10, [0.0, 0.0])
-
-@btime run_mutation(landscape, 1000, mutation!)
-@btime run_mutation(landscape, 1000, mutation_v2!)
-@btime run_mutation(landscape, 1000, mutation_multinomial!)
-@btime run_mutation(landscape, 1000, mutation_multinomial_v2!)
-@btime run_mutation(landscape, 1000, mutation_multinomial_v3!)
+landscape = Landscape(1.0, 0.001, 0.1, 0.001, 10, [0.0, 0.0])
+println("UL = 10")
+print("mutation!                 ")
+@btime run_mutation(N, landscape, iters, mutation!)
+print("mutation_v2!              ")
+@btime run_mutation(N, landscape, iters, mutation_v2!)
+print("mutation_multinomial!     ")
+@btime run_mutation(N, landscape, iters, mutation_multinomial!)
+print("mutation_multinomial_v2!  ")
+@btime run_mutation(N, landscape, iters, mutation_multinomial_v2!)
+print("mutation_multinomial_old! ")
+@btime run_mutation(N, landscape, iters, mutation_multinomial_old!)

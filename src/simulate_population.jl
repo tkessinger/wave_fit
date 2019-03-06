@@ -34,7 +34,7 @@ function main(args)
             default=1e-2
         "--UL"
             arg_type=Float64
-            default=10.0
+            default=1.0
         "--beta"
             arg_type=Float64
             default=0.01
@@ -49,7 +49,7 @@ function main(args)
             default=100
         "--burn_factor"
             arg_type=Float64
-            default=0.5
+            default=0.25
         "--file"
             arg_type=AbstractString
             default = "test"
@@ -69,21 +69,26 @@ function main(args)
 
     K = round(Int64, K)
     burn_time = round(Int64, K * burn_factor)
-    landscape = Landscape(sigma, delta, s, UL, beta, [0.0, 0.0])
-    pop = Population(K,landscape)
+    landscape = Landscape(sigma, delta, s, beta, UL, [0.0, 0.0])
 
     crossing_times = []
 
     df = DateFormat("yyyy.mm.dd HH:MM:SS")
     println(Dates.format(now(), df), " | start")
     for i in 1:num_crossings
-        pop = Population(K,landscape)
+        pop = Population(K, landscape)
+
+        # burn in
+        for i in 1:burn_time
+            evolve_multi!(pop)
+        end
+
+        # initialize mutations and run until valley crossing
+        pop.landscape = Landscape(sigma, delta, s, beta, UL, [mu1, mu2])
         while get_frequencies(pop)[2] < 0.5
             evolve_multi!(pop)
-            if pop.generation == burn_time
-                pop.landscape = Landscape(sigma, delta, s, UL, beta, [mu1, mu2])
-            end
         end
+
         push!(crossing_times, pop.generation-burn_time)
         println(Dates.format(now(), df), " | crossing time: ", pop.generation-burn_time)
         flush(stdout)
