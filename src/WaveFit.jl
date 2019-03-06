@@ -14,7 +14,7 @@ export Population, Landscape
 export FitnessClass
 export get_mean_fitness, get_frequencies
 
-using Distributions, Combinatorics, StatsBase
+using Distributions, StatsBase
 
 mutable struct Landscape
     σ::Float64
@@ -67,14 +67,18 @@ end
 #     return karr
 # end
 
+# borrowed from Steve Johnson
+# https://discourse.julialang.org/t/poor-time-performance-on-dict/9656/12
+mutable struct FastHashInt128; i::Int128; end
+Base.:(==)(x::FastHashInt128, y::FastHashInt128) = x.i == y.i
+Base.hash(x::FastHashInt128, h::UInt) = xor(UInt128(x.i), h)
+
 # generate a key from a FitnessClass as an Int128 assuming **biallelic** loci
 function key(fc::FitnessClass)
-    kint::Int128 = 0
+    kint = FastHashInt128(fc.bg_mutations)
     for i=1:length(fc.loci)
-        @inbounds kint += Int128(2)^(62+i) * fc.loci[i]
+        @inbounds kint.i += (Int128(1) << (62+i)) * fc.loci[i]
     end
-    kint += fc.bg_mutations
-
     return kint
 end
 
@@ -82,7 +86,7 @@ mutable struct Population
     K::Int64    # carrying capacity
     N::Int64    # population size
     landscape::Landscape
-    classes::Dict{Int128, FitnessClass}
+    classes::Dict{FastHashInt128, FitnessClass}
     mean_bg_fitness::Float64
     mean_loci_fitness::Float64
     mean_fitness::Float64
