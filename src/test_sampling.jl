@@ -33,6 +33,23 @@ end
 @btime test_mult_bare(10000, 10000)
 @btime test_mult_user(10000, 10000)
 
+
+function test_r_poisson(λ::Real, n::Int64)
+    return rand(Poisson(λ), n)
+end
+
+# maybe less accuracy than rpois?
+function test_alias_poisson(λ::Real, n::Int64)
+    probs = pdf.(Poisson(λ), 1:quantile(Poisson(λ),1-2*eps(1.0)))
+    probs /= sum(probs)
+    s = sampler(Categorical(probs))
+
+    return rand(s, n)
+end
+
+@btime test_r_poisson(100, 1000000)
+@btime test_alias_poisson(100, 1000000)
+
 function grid_bench(Nvals, nvals, func)
     times = zeros(d,d)
     for i = 1:length(Nvals)
