@@ -46,7 +46,7 @@ function main(args)
             default=1e-5
         "--num_crossings"
             arg_type=Float64
-            default=100
+            default=100.0
         "--burn_factor"
             arg_type=Float64
             default=0.25
