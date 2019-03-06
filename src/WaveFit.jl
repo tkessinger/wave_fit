@@ -14,7 +14,7 @@ export Population, Landscape
 export FitnessClass
 export get_mean_fitness, get_frequencies
 
-using Distributions, Combinatorics, StatsBase, StaticArrays
+using Distributions, Combinatorics, StatsBase
 
 mutable struct Landscape
     σ::Float64
