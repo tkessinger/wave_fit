@@ -9,6 +9,7 @@
 module WaveFit
 export evolve!, selection!, mutation!, evolve_multi!
 export mutation_v2!, mutation_multinomial!, mutation_multinomial_v2!, mutation_multinomial_old!
+export focal_mutation!
 export Clone
 export Population, Landscape
 export FitnessClass
@@ -78,6 +79,15 @@ function key(fc::FitnessClass)
     kint = FastHashInt128(fc.bg_mutations)
     for i=1:length(fc.loci)
         @inbounds kint.i += (Int128(1) << (62+i)) * fc.loci[i]
+    end
+    return kint
+end
+
+# generate a key from an array with bg_mutations then loci
+function key(arr::Array{Int64,1})
+    kint = FastHashInt128(arr[1])
+    for i=1:length(arr)-1
+        @inbounds kint.i += (Int128(1) << (62+i)) * arr[i+1]
     end
     return kint
 end
@@ -383,8 +393,9 @@ function focal_mutation!(pop::Population)
         probabilities = weights(1.0*[x.n for x in wt_classes])
         classes_to_mutate = sample(wt_classes, probabilities, wt_muts)
         for cl in classes_to_mutate
-            if [cl.bg_mutations, 1, 0] in keys(pop.classes)
-                pop.classes[[cl.bg_mutations, 1, 0]].n += 1
+            k = key([cl.bg_mutations, 1, 0])
+            if k in keys(pop.classes)
+                pop.classes[k].n += 1
             else
                 tempclass = copy(cl)
                 tempclass.n = 1
@@ -414,8 +425,9 @@ function focal_mutation!(pop::Population)
         probabilities = weights(1.0*[x.n for x in sm_classes])
         classes_to_mutate = sample(sm_classes, probabilities, sm_muts)
         for cl in classes_to_mutate
-            if [cl.bg_mutations, 1, 1] in keys(pop.classes)
-                pop.classes[[cl.bg_mutations, 1, 1]].n += 1
+            k = key([cl.bg_mutations, 1, 1])
+            if k in keys(pop.classes)
+                pop.classes[k].n += 1
             else
                 tempclass = copy(cl)
                 tempclass.n = 1
@@ -423,51 +435,6 @@ function focal_mutation!(pop::Population)
                 pop.classes[key(tempclass)] = tempclass
             end
             cl.n -= 1
-        end
-    end
-end
-
-function mutation_small!(pop::Population)
-    # randomly adds Poisson(UL) mutations to each individual.
-
-    mut_dist = Poisson(pop.N*pop.landscape.UL)
-    total_muts = rand(mut_dist)
-
-    classes = collect(keys(pop.classes))
-    probabilities = weights(1.0*[x.n for x in values(pop.classes)])
-    classes_to_mutate = sample(classes, probabilities, total_muts)
-
-    mut_dict = Dict()
-
-    for cl in classes_to_mutate
-        if cl in keys(mut_dict)
-            mut_dict[cl] += 1
-        else
-            mut_dict[cl] = 1
-        end
-    end
-    #println("$mut_dict")
-    for cl in keys(mut_dict)
-        tempclass = copy(pop.classes[cl])
-        indvs_to_mutate = rand(1:pop.classes[cl].n, mut_dict[cl])
-        tmp_indvs = Dict()
-        for indv in indvs_to_mutate
-            if indv in keys(tmp_indvs)
-                tmp_indvs[indv] += 1
-            else
-                tmp_indvs[indv] = 1
-            end
-        end
-        for indv in keys(tmp_indvs)
-            pop.classes[cl].n -= 1
-            tempclass.bg_mutations = pop.classes[cl].bg_mutations + tmp_indvs[indv]
-            tempk = key(tempclass)
-            if (tempk in keys(pop.classes))
-                pop.classes[tempk].n += 1
-            else
-                pop.classes[tempk] = copy(tempclass)
-                pop.classes[tempk].n = 1
-            end
         end
     end
 end
