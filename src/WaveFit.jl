@@ -268,12 +268,13 @@ function mutation_multinomial!(pop::Population)
                 class.n -= 1
                 tempclass.bg_mutations = class.bg_mutations + num_muts[i]
                 tempk = key(tempclass)
-                if (tempk in keys(pop.classes))
-                    pop.classes[tempk].n += 1
-                else
-                    # the `copy` here is important
-                    pop.classes[tempk] = copy(tempclass)
-                    pop.classes[tempk].n = 1
+                oldclass = get(pop.classes, tempk, nothing)
+                if oldclass != nothing
+                    oldclass.n += 1
+                else # create new class with `copy`
+                    newclass = copy(tempclass)
+                    newclass.n = 1
+                    pop.classes[tempk] = newclass
                 end
             end
         end
@@ -394,13 +395,14 @@ function focal_mutation!(pop::Population)
         classes_to_mutate = sample(wt_classes, probabilities, wt_muts)
         for cl in classes_to_mutate
             k = key([cl.bg_mutations, 1, 0])
-            if k in keys(pop.classes)
-                pop.classes[k].n += 1
+            oldclass = get(pop.classes, k, nothing)
+            if oldclass != nothing
+                oldclass.n += 1
             else
                 tempclass = copy(cl)
                 tempclass.n = 1
                 tempclass.loci = [1, 0]
-                pop.classes[key(tempclass)] = tempclass
+                pop.classes[k] = tempclass
             end
             cl.n -= 1
         end
@@ -426,13 +428,14 @@ function focal_mutation!(pop::Population)
         classes_to_mutate = sample(sm_classes, probabilities, sm_muts)
         for cl in classes_to_mutate
             k = key([cl.bg_mutations, 1, 1])
-            if k in keys(pop.classes)
-                pop.classes[k].n += 1
+            oldclass = get(pop.classes, k, nothing)
+            if oldclass != nothing
+                oldclass.n += 1
             else
                 tempclass = copy(cl)
                 tempclass.n = 1
                 tempclass.loci = [1, 1]
-                pop.classes[key(tempclass)] = tempclass
+                pop.classes[k] = tempclass
             end
             cl.n -= 1
         end
