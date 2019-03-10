@@ -70,33 +70,33 @@ end
 
 # borrowed from Steve Johnson
 # https://discourse.julialang.org/t/poor-time-performance-on-dict/9656/12
-mutable struct FastHashInt128; i::Int128; end
-Base.:(==)(x::FastHashInt128, y::FastHashInt128) = x.i == y.i
-Base.hash(x::FastHashInt128, h::UInt) = xor(UInt128(x.i), h)
+struct FastHashUInt128; i::UInt128; end
+Base.:(==)(x::FastHashUInt128, y::FastHashUInt128) = x.i == y.i
+Base.hash(x::FastHashUInt128, h::UInt) = xor(x.i, h)
 
 # generate a key from a FitnessClass as an Int128 assuming **biallelic** loci
 function key(fc::FitnessClass)
-    kint = FastHashInt128(fc.bg_mutations)
+    kint = UInt128(fc.bg_mutations)
     for i=1:length(fc.loci)
-        @inbounds kint.i += (Int128(1) << (62+i)) * fc.loci[i]
+        @inbounds kint += (Int128(1) << (62+i)) * fc.loci[i]
     end
-    return kint
+    return FastHashUInt128(kint)
 end
 
 # generate a key from an array with bg_mutations then loci
 function key(arr::Array{Int64,1})
-    kint = FastHashInt128(arr[1])
+    kint = UInt128(arr[1])
     for i=1:length(arr)-1
-        @inbounds kint.i += (Int128(1) << (62+i)) * arr[i+1]
+        @inbounds kint += (Int128(1) << (62+i)) * arr[i+1]
     end
-    return kint
+    return FastHashUInt128(kint)
 end
 
 mutable struct Population
     K::Int64    # carrying capacity
     N::Int64    # population size
     landscape::Landscape
-    classes::Dict{FastHashInt128, FitnessClass}
+    classes::Dict{FastHashUInt128, FitnessClass}
     mean_bg_fitness::Float64
     mean_loci_fitness::Float64
     mean_fitness::Float64
@@ -249,9 +249,10 @@ function mutation_multinomial!(pop::Population)
     # create multinomial sample
     # (empirical evidence suggests this might be faster than
     #  Multinomial(n,k) for 10n<=k)
+    distN = DiscreteUniform(1, pop.N)
     num_muts = zeros(Int64, pop.N)
     for i = 1:total_muts
-        num_muts[rand(1:pop.N)] += 1
+        @inbounds num_muts[rand(distN)] += 1
     end
 
     # capture class keys and their sizes and iterate over each class
