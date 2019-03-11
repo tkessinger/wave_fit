@@ -23,28 +23,23 @@ function read_parameters(defpars, inputfile=nothing)
     end
 
     for parkey in keys(defpars)
+        if "type" in keys(pars[parkey]) &&
+            isprimitivetype(pars[parkey]["type"])
+            T = pars[parkey]["type"]
+        else
+            # Default type is Float
+            T = Float64
+        end
+        if T <: Int
+            convertf = (val) -> round(T, val)
+        else
+            convertf = (val) -> convert(T, val)
+        end
+
         # use defpars for list of usabe parameters in JSON
         if parkey in keys(inpars)
-            if "type" in keys(inpars[parkey]) &&
-                isprimitivetype(eval(Meta.parse(inpars[parkey]["type"])))
-                T = eval(Meta.parse(inpars[parkey]["type"]))
-            else
-                # Default type is Float
-                T = Float64
-            end
-            if T <: Int
-                convertf = (val) -> round(T, val)
-            else
-                convertf = (val) -> convert(T, val)
-            end
-
             if "value" in keys(inpars[parkey])
                 val = inpars[parkey]["value"]
-                if isstructtype(typeof(val))
-                    pars[parkey] = convertf.(val)
-                else
-                    pars[parkey] = [convertf(val)]
-                end
             elseif "range" in keys(inpars[parkey])
                 valr = inpars[parkey]["range"]
                 if "log" in keys(valr)
@@ -56,12 +51,16 @@ function read_parameters(defpars, inputfile=nothing)
                 end
                 start = pop!(valr, "start")
                 rkws = Dict(zip(Symbol.(keys(valr)), values(valr)))
-                pars[parkey] = convertf.(rf(range(start; rkws...)))
+                val = rf(range(start; rkws...))
             end
         else
-            if !isstructtype(typeof(pars[parkey]))
-                pars[parkey] = [pars[parkey]]
-            end
+            val = pars[parkey]["value"]
+        end
+
+        if !isstructtype(typeof(val))
+            pars[parkey] = [convertf(val)]
+        else
+            pars[parkey] = convertf.(val)
         end
     end
 
@@ -73,16 +72,16 @@ pars = read_parameters(defpars, "test_parameter_values.json")
 function main(args)
 
     defpars = Dict{String,Any}([
-        "K" => 10^5,
-        "sigma" => 1e-5,
-        "delta" => 1e-3,
-        "s" => 1e-2,
-        "UL" => 1.0,
-        "beta" => 0.01,
-        "mu1" => 1e-5,
-        "mu2" => 1e-5,
-        "num_crossings" => 100,
-        "burn_factor" => 0.25
+        "K"     => Dict("value" => 10^5, "type" => Int64),
+        "sigma" => Dict("value" => 1e-5, "type" => Float64),
+        "delta" => Dict("value" => 1e-3, "type" => Float64),
+        "s"     => Dict("value" => 1e-2, "type" => Float64),
+        "UL"    => Dict("value" => 1.0, "type" => Float64),
+        "beta"  => Dict("value" => 0.01, "type" => Float64),
+        "mu1"   => Dict("value" => 1e-5, "type" => Float64),
+        "mu2"   => Dict("value" => 1e-5, "type" => Float64),
+        "num_crossings" => Dict("value" => 100, "type" => Int64),
+        "burn_factor"   => Dict("value" => 0.25, "type" => Float64)
     ])
 
     s = ArgParseSettings(description = "Run WaveFit simulation across multiple cores")
