@@ -97,7 +97,7 @@ function main(args)
         "num_crossings" => Dict("value" => 100, "type" => Int64),
         "burn_factor"   => Dict("value" => 0.25, "type" => Float64)
     ])
-    pars = read_parameters(defpars, "test_parameter_values.json")
+    pars = read_parameters(defpars, parsed_args["input"])
 
     # take the Cartesian product of all parameter combinations
     parsets = collect(Base.product(values(pars)...))
@@ -108,13 +108,15 @@ function main(args)
     wpool = WorkerPool(workers())
     extradir = filter((p)->match(r"/", p) !== nothing, LOAD_PATH)[1]
     @everywhere workers() push!(LOAD_PATH, $extradir)
-    @everywhere workers() using Random
-    @everywhere workers() using WaveFit
+    @everywhere workers() eval(:(using Random))
+    @everywhere workers() eval(:(using WaveFit))
+    @everywhere workers() eval(:(using Dates))
 
-    @everywhere function run_parse(pard, iter, results)
+    @everywhere function run_parset(pard, iter, results)
         # save crossing number and random seed
         pard["iter"] = iter
-        merge(pard, Dict(zip(["seed1", "seed2", "seed3", "seed4"], Random.GLOBAL_RNG.seed)))
+        pard = merge(pard, Dict(zip(["seed1", "seed2", "seed3", "seed4"], Random.GLOBAL_RNG.seed)))
+        burn_time = round(Int64, pard["K"] * pard["burn_factor"])
 
         # burn in
         start = now()
@@ -125,7 +127,7 @@ function main(args)
                               pard["UL"],
                               [0.0, 0.0])
         pop = Population(pard["K"], landscape)
-        for i in 1:round(Int64, pard["K"] * pard["burn_factor"])
+        for i in 1:burn_time
             evolve_multi!(pop)
         end
 
@@ -150,13 +152,12 @@ function main(args)
         stop = now()
         print("--- run      | ")
         foreach(k -> print(k, ": ", pard[k], ", "), sort(collect(keys(pard))))
-        println(" crossing: ", iter)
-        println("--- elapsed time | ",
+        println(" crossing: ", iter, ", elapsed time: ",
             Dates.canonicalize(Dates.CompoundPeriod(round(stop-start, Dates.Second(1)))))
         flush(stdout)
     end
 
-    const results = RemoteChannel(()->Channel{Dict}(2*nruns*maximum(pars["num_crossings"])))
+    results = RemoteChannel(()->Channel{Dict}(2*nsets*maximum(pars["num_crossings"])))
 
     # queue jobs to run
     nruns = 0
@@ -164,6 +165,7 @@ function main(args)
         pard = Dict(zip(keys(pars), parset))
         print("--- queueing | ")
         foreach(k -> print(k, ": ", pard[k], ", "), sort(collect(keys(pard))))
+        println()
         for iter in 1:pard["num_crossings"]
             nruns += 1
             remote_do(run_parset, wpool, pard, iter, results)
@@ -171,15 +173,18 @@ function main(args)
     end
 
     # create output file name and data table
-    file = occursin(r"\.csv$", outfile) ? outfile : outfile*".csv"
+    output = parsed_args["output"]
+    file = occursin(r"\.csv$", output) ? output : output*".csv"
     cols = push!(sort(collect(keys(pars))),
-                 ["iter", "crossing_time", "seed1", "seed2", "seed3", "seed4"])
+                 ["iter", "crossing_time", "seed1", "seed2", "seed3", "seed4"]...)
     dat = DataFrame(Dict([(c, Any[]) for c in cols]))
 
     # grab results and output to CSV
     for run in 1:nruns
+        # get results from parallel jobs
         resd = take!(results)
-        push!(dat, resd)
+        # add to table (must convert dict keys to symbols) and save
+        push!(dat, Dict([(Symbol(k), resd[k]) for k in keys(resd)]))
         CSV.write(file, dat)
     end
 end
