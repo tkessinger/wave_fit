@@ -1,0 +1,40 @@
+{
+  "mu1":
+  {
+    "value": 1e-5
+  },
+  "mu2":
+  {
+    "value": 1e-4
+  },
+  "delta":
+  {
+    "value": 2e-4
+  },
+  "sigma":
+  {
+    "value": [0.5,1e-1,0.05,1e-2,1e-8]
+  },
+  "num_crossings":
+  {
+    "value": 50
+  },
+  "UL":
+  {
+    "value": 1.0
+  },
+  "s":
+  {
+    "value": 0.1
+  },
+  "K":
+  {
+    "range":
+    {
+      "log": 10,
+      "start": 2,
+      "stop": 6,
+      "length": 17
+    }
+  }
+}
