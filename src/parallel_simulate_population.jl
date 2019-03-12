@@ -187,7 +187,6 @@ function main(args)
     # grab results and output to CSV
     for sim in 1:nruns
         # get results from parallel jobs
-        println("--- ready to take...")
         flush(stdout)
         resd = take!(results)
         nrun = pop!(resd, "nrun")
