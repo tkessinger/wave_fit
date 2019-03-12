@@ -112,9 +112,10 @@ function main(args)
     @everywhere workers() eval(:(using WaveFit))
     @everywhere workers() eval(:(using Dates))
 
-    @everywhere function run_parset(pard, iter, results)
+    @everywhere function run_parset(pard, rep, nrun, results)
         # save crossing number and random seed
-        pard["iter"] = iter
+        pard["rep"] = rep
+        pard["nrun"] = nrun
         pard = merge(pard, Dict(zip(["seed1", "seed2", "seed3", "seed4"], Random.GLOBAL_RNG.seed)))
         burn_time = round(Int64, pard["K"] * pard["burn_factor"])
 
@@ -147,9 +148,9 @@ function main(args)
 
         # output elapsed time
         stop = now()
-        print("--- run      | ")
+        print("--- run --- ")
         foreach(k -> print(k, ": ", pard[k], ", "), sort(collect(keys(pard))))
-        println(" crossing: ", iter, ", elapsed time: ",
+        println(" crossing: ", rep, ", nrun: ", nrun, ", elapsed time: ",
             Dates.canonicalize(Dates.CompoundPeriod(round(stop-start, Dates.Second(1)))))
         flush(stdout)
 
@@ -163,13 +164,13 @@ function main(args)
     nruns = 0
     for parset in parsets
         pard = Dict(zip(keys(pars), parset))
-        print("--- queueing | ")
+        print("--- queueing --- ")
         foreach(k -> print(k, ": ", pard[k], ", "), sort(collect(keys(pard))))
         println()
         flush(stdout)
-        for iter in 1:pard["num_crossings"]
+        for rep in 1:pard["num_crossings"]
             nruns += 1
-            remote_do(run_parset, wpool, pard, iter, results)
+            remote_do(run_parset, wpool, pard, rep, nruns, results)
         end
     end
 
@@ -177,13 +178,17 @@ function main(args)
     output = parsed_args["output"]
     file = occursin(r"\.csv$", output) ? output : output*".csv"
     cols = push!(sort(collect(keys(pars))),
-                 ["iter", "crossing_time", "seed1", "seed2", "seed3", "seed4"]...)
+                 ["rep", "crossing_time", "seed1", "seed2", "seed3", "seed4"]...)
     dat = DataFrame(Dict([(c, Any[]) for c in cols]))
 
     # grab results and output to CSV
-    for run in 1:nruns
+    for sim in 1:nruns
         # get results from parallel jobs
         resd = take!(results)
+        nrun = pop!(resd, "nrun")
+        println("--- receiving data ", nrun, " ---")
+        flush(stdout)
+
         # add to table (must convert dict keys to symbols) and save
         push!(dat, Dict([(Symbol(k), resd[k]) for k in keys(resd)]))
         CSV.write(file, dat)
