@@ -7,9 +7,11 @@
 
 using WaveFit
 using Distributions
-using ArgParse, JLD2
+using ArgParse
 using Dates
 using Distributed
+using DataFrames
+using CSV
 import JSON
 
 # read parameters from JSON file
@@ -110,6 +112,9 @@ function main(args)
     @everywhere workers() using WaveFit
 
     @everywhere function run_parse(pard, iter, results)
+        # save crossing number and random seed
+        pard["iter"] = iter
+        merge(pard, Dict(zip(["seed1", "seed2", "seed3", "seed4"], Random.GLOBAL_RNG.seed)))
 
         # burn in
         start = now()
@@ -135,10 +140,8 @@ function main(args)
             evolve_multi!(pop)
         end
 
-        # save crossing number, time, and random seed
-        pard["iter"] = iter
+        # save crossing time
         pard["crossing_time"] = pop.generation-burn_time
-        merge(pard, Dict(zip(["seed1", "seed2", "seed3", "seed4"], Random.GLOBAL_RNG.seed)))
 
         # return data
         put!(results, pard)
@@ -167,12 +170,17 @@ function main(args)
         end
     end
 
-    # get output and save it
-    file = occursin(r"\.jld2$", outfile) ? outfile : outfile*".jld2"
+    # create output file name and data table
+    file = occursin(r"\.csv$", outfile) ? outfile : outfile*".csv"
+    cols = push!(sort(collect(keys(pars))),
+                 ["iter", "crossing_time", "seed1", "seed2", "seed3", "seed4"])
+    dat = DataFrame(Dict([(c, Any[]) for c in cols]))
+
+    # grab results and output to CSV
     for run in 1:nruns
         resd = take!(results)
-
-        @save "$file" crossing_times parsed_args
+        push!(dat, resd)
+        CSV.write(file, dat)
     end
 end
 
