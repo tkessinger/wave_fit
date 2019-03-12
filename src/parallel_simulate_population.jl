@@ -9,6 +9,7 @@ using WaveFit
 using Distributions
 using ArgParse, JLD2
 using Dates
+using Distributed
 import JSON
 
 # read parameters from JSON file
@@ -67,9 +68,20 @@ function read_parameters(defpars, inputfile=nothing)
     return pars
 end
 
-pars = read_parameters(defpars, "test_parameter_values.json")
-
 function main(args)
+
+    s = ArgParseSettings(description = "Run WaveFit simulation across multiple cores")
+    @add_arg_table s begin
+        "--ncpus"
+            arg_type=Int64
+            default=max(round(Int,Sys.CPU_THREADS/2), 1)
+        "--input"
+            default=nothing
+        "--output"
+            arg_type=String
+            default="test"
+    end
+    parsed_args = parse_args(args, s)
 
     defpars = Dict{String,Any}([
         "K"     => Dict("value" => 10^5, "type" => Int64),
@@ -83,89 +95,83 @@ function main(args)
         "num_crossings" => Dict("value" => 100, "type" => Int64),
         "burn_factor"   => Dict("value" => 0.25, "type" => Float64)
     ])
+    pars = read_parameters(defpars, "test_parameter_values.json")
 
-    s = ArgParseSettings(description = "Run WaveFit simulation across multiple cores")
+    # take the Cartesian product of all parameter combinations
+    parsets = collect(Base.product(values(pars)...))
+    nsets = length(parsets)
 
-    @add_arg_table s begin
-        "--job_name"
-            arg_type=String
-            default = "test"
-        "--K"
-            arg_type=Float64
-            default=1e5
-        "--sigma"
-            arg_type=Float64
-            default=1e-5
-        "--delta"
-            arg_type=Float64
-            default=1e-3
-        "--s"
-            arg_type=Float64
-            default=1e-2
-        "--UL"
-            arg_type=Float64
-            default=1.0
-        "--beta"
-            arg_type=Float64
-            default=0.01
-        "--mu1"
-            arg_type=Float64
-            default=1e-5
-        "--mu2"
-            arg_type=Float64
-            default=1e-5
-        "--num_crossings"
-            arg_type=Float64
-            default=100.0
-        "--burn_factor"
-            arg_type=Float64
-            default=0.25
-        "--input"
-            default=nothing
-        "--output"
-            arg_type=String
-            default = "test"
-    end
+    # setup workers assuming directory is manually added to LOAD_PATH
+    addprocs(min(parsed_args["ncpus"], Sys.CPU_THREADS))
+    wpool = WorkerPool(workers())
+    extradir = filter((p)->match(r"/", p) !== nothing, LOAD_PATH)[1]
+    @everywhere workers() push!(LOAD_PATH, $extradir)
+    @everywhere workers() using Random
+    @everywhere workers() using WaveFit
 
-    parsed_args = parse_args(args, s)
-
-    job_name, K, sigma, delta, s, UL, beta, mu1, mu2, outfile, num_crossings, burn_factor =
-        parsed_args["job_name"], parsed_args["K"], parsed_args["sigma"],
-        parsed_args["delta"], parsed_args["s"], parsed_args["UL"], parsed_args["beta"],
-        parsed_args["mu1"], parsed_args["mu2"], parsed_args["file"],
-        parsed_args["num_crossings"], parsed_args["burn_factor"]
-
-    println("-----------")
-    foreach(p -> println(p[1], ": ", p[2]), parsed_args)
-    println("-----------")
-
-    K = round(Int64, K)
-    burn_time = round(Int64, K * burn_factor)
-    num_crossings = round(Int64, num_crossings)
-    landscape = Landscape(sigma, delta, s, beta, UL, [0.0, 0.0])
-
-    crossing_times = []
-
-    df = DateFormat("yyyy.mm.dd HH:MM:SS")
-    println(Dates.format(now(), df), " | start")
-    for i in 1:num_crossings
-        pop = Population(K, landscape)
+    @everywhere function run_parse(pard, iter, results)
 
         # burn in
-        for i in 1:burn_time
+        start = now()
+        landscape = Landscape(pard["sigma"],
+                              pard["delta"],
+                              pard["s"],
+                              pard["beta"],
+                              pard["UL"],
+                              [0.0, 0.0])
+        pop = Population(pard["K"], landscape)
+        for i in 1:round(Int64, pard["K"] * pard["burn_factor"])
             evolve_multi!(pop)
         end
 
         # initialize mutations and run until valley crossing
-        pop.landscape = Landscape(sigma, delta, s, beta, UL, [mu1, mu2])
+        pop.landscape = Landscape(pard["sigma"],
+                                  pard["delta"],
+                                  pard["s"],
+                                  pard["beta"],
+                                  pard["UL"],
+                                  [pard["mu1"], pard["mu2"]])
         while get_frequencies(pop)[2] < 0.5
             evolve_multi!(pop)
         end
 
-        push!(crossing_times, pop.generation-burn_time)
-        println(Dates.format(now(), df), " | crossing time: ", pop.generation-burn_time)
+        # save crossing number, time, and random seed
+        pard["iter"] = iter
+        pard["crossing_time"] = pop.generation-burn_time
+        merge(pard, Dict(zip(["seed1", "seed2", "seed3", "seed4"], Random.GLOBAL_RNG.seed)))
+
+        # return data
+        put!(results, pard)
+
+        # output elapsed time
+        stop = now()
+        print("--- run      | ")
+        foreach(k -> print(k, ": ", pard[k], ", "), sort(collect(keys(pard))))
+        println(" crossing: ", iter)
+        println("--- elapsed time | ",
+            Dates.canonicalize(Dates.CompoundPeriod(round(stop-start, Dates.Second(1)))))
         flush(stdout)
-        file = occursin(r"\.jld2$", outfile) ? outfile : outfile*".jld2"
+    end
+
+    const results = RemoteChannel(()->Channel{Dict}(2*nruns*maximum(pars["num_crossings"])))
+
+    # queue jobs to run
+    nruns = 0
+    for parset in parsets
+        pard = Dict(zip(keys(pars), parset))
+        print("--- queueing | ")
+        foreach(k -> print(k, ": ", pard[k], ", "), sort(collect(keys(pard))))
+        for iter in 1:pard["num_crossings"]
+            nruns += 1
+            remote_do(run_parset, wpool, pard, iter, results)
+        end
+    end
+
+    # get output and save it
+    file = occursin(r"\.jld2$", outfile) ? outfile : outfile*".jld2"
+    for run in 1:nruns
+        resd = take!(results)
+
         @save "$file" crossing_times parsed_args
     end
 end
