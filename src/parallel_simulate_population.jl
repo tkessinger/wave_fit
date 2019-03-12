@@ -112,58 +112,63 @@ function main(args)
     @everywhere workers() eval(:(using WaveFit))
     @everywhere workers() eval(:(using Dates))
 
-    @everywhere function run_parset(pard, rep, nrun, results)
+    inputs  = RemoteChannel(()->Channel{Dict}(2*nsets*maximum(pars["num_crossings"])))
+    results = RemoteChannel(()->Channel{Dict}(2*nsets*maximum(pars["num_crossings"])))
+
+    @everywhere function run_worker(inputs, results)
         # save crossing number and random seed
-        pard["rep"] = rep
-        pard["nrun"] = nrun
-        pard = merge(pard, Dict(zip(["seed1", "seed2", "seed3", "seed4"], Random.GLOBAL_RNG.seed)))
-        burn_time = round(Int64, pard["K"] * pard["burn_factor"])
+        seed = Dict(zip(["seed1", "seed2", "seed3", "seed4"], Random.GLOBAL_RNG.seed))
 
-        print("--- running ", nrun, " --- ")
-        foreach(k -> print(k, ": ", pard[k], ", "), sort(collect(keys(pard))))
-        println(" crossing: ", rep)
-        flush(stdout)
+        while true
+            pard = take!(inputs)
+            pard = merge(pard, seed)
+            burn_time = round(Int64, pard["K"] * pard["burn_factor"])
 
-        # burn in
-        start = now()
-        landscape = Landscape(pard["sigma"],
-                              pard["delta"],
-                              pard["s"],
-                              pard["beta"],
-                              pard["UL"],
-                              [0.0, 0.0])
-        pop = Population(pard["K"], landscape)
-        for i in 1:burn_time
-            evolve_multi!(pop)
-        end
+            print("--- running --- ")
+            foreach(k -> print(k, ": ", pard[k], ", "), sort(collect(keys(pard))))
+            println()
+            flush(stdout)
 
-        # initialize mutations and run until valley crossing
-        pop.landscape = Landscape(pard["sigma"],
+            # burn in
+            start = now()
+            landscape = Landscape(pard["sigma"],
                                   pard["delta"],
                                   pard["s"],
                                   pard["beta"],
                                   pard["UL"],
-                                  [pard["mu1"], pard["mu2"]])
-        while get_frequencies(pop)[2] < 0.5
-            evolve_multi!(pop)
+                                  [0.0, 0.0])
+
+            pop = Population(pard["K"], landscape)
+            for i in 1:burn_time
+                evolve_multi!(pop)
+            end
+
+            # initialize mutations and run until valley crossing
+            pop.landscape = Landscape(pard["sigma"],
+                                      pard["delta"],
+                                      pard["s"],
+                                      pard["beta"],
+                                      pard["UL"],
+                                      [pard["mu1"], pard["mu2"]])
+            while get_frequencies(pop)[2] < 0.5
+                evolve_multi!(pop)
+            end
+
+            # save crossing time
+            pard["crossing_time"] = pop.generation-burn_time
+
+            # output elapsed time
+            stop = now()
+            println("--- ran ", pard["nrun"], " --- elapsed time:",
+                Dates.canonicalize(Dates.CompoundPeriod(round(stop-start, Dates.Second(1)))))
+            flush(stdout)
+
+            # return data to master process
+            put!(results, pard)
         end
-
-        # save crossing time
-        pard["crossing_time"] = pop.generation-burn_time
-
-        # output elapsed time
-        stop = now()
-        println("--- ran ", nrun, " --- elapsed time:",
-            Dates.canonicalize(Dates.CompoundPeriod(round(stop-start, Dates.Second(1)))))
-        flush(stdout)
-
-        # return data to master process
-        put!(results, pard)
     end
 
-    results = RemoteChannel(()->Channel{Dict}(2*nsets*maximum(pars["num_crossings"])))
-
-    # queue jobs to run
+    # load parameter sets into inputs channel
     nruns = 0
     for parset in parsets
         pard = Dict(zip(keys(pars), parset))
@@ -173,8 +178,16 @@ function main(args)
         flush(stdout)
         for rep in 1:pard["num_crossings"]
             nruns += 1
-            remote_do(run_parset, wpool, pard, rep, nruns, results)
+            rpard = copy(pard)
+            rpard["rep"] = rep
+            rpard["nrun"] = nruns
+            put!(inputs, rpard)
         end
+    end
+
+    # start workers running on parameter sets in inputs
+    for w in workers() # start tasks on the workers to process requests in parallel
+        remote_do(run_worker, w, inputs, results)
     end
 
     # create output file name and data table
@@ -190,8 +203,6 @@ function main(args)
         flush(stdout)
         resd = take!(results)
         nrun = pop!(resd, "nrun")
-        println("--- receiving data ", nrun, " ---")
-        flush(stdout)
 
         # add to table (must convert dict keys to symbols) and save
         push!(dat, Dict([(Symbol(k), resd[k]) for k in keys(resd)]))
