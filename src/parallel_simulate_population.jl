@@ -119,6 +119,11 @@ function main(args)
         pard = merge(pard, Dict(zip(["seed1", "seed2", "seed3", "seed4"], Random.GLOBAL_RNG.seed)))
         burn_time = round(Int64, pard["K"] * pard["burn_factor"])
 
+        print("--- running ", nrun, " --- ")
+        foreach(k -> print(k, ": ", pard[k], ", "), sort(collect(keys(pard))))
+        println(" crossing: ", rep)
+        flush(stdout)
+
         # burn in
         start = now()
         landscape = Landscape(pard["sigma"],
@@ -148,9 +153,7 @@ function main(args)
 
         # output elapsed time
         stop = now()
-        print("--- run --- ")
-        foreach(k -> print(k, ": ", pard[k], ", "), sort(collect(keys(pard))))
-        println(" crossing: ", rep, ", nrun: ", nrun, ", elapsed time: ",
+        println("--- ran ", nrun, " --- elapsed time:",
             Dates.canonicalize(Dates.CompoundPeriod(round(stop-start, Dates.Second(1)))))
         flush(stdout)
 
@@ -184,6 +187,8 @@ function main(args)
     # grab results and output to CSV
     for sim in 1:nruns
         # get results from parallel jobs
+        println("--- ready to take...")
+        flush(stdout)
         resd = take!(results)
         nrun = pop!(resd, "nrun")
         println("--- receiving data ", nrun, " ---")
