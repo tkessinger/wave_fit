@@ -145,9 +145,6 @@ function main(args)
         # save crossing time
         pard["crossing_time"] = pop.generation-burn_time
 
-        # return data
-        put!(results, pard)
-
         # output elapsed time
         stop = now()
         print("--- run      | ")
@@ -155,6 +152,9 @@ function main(args)
         println(" crossing: ", iter, ", elapsed time: ",
             Dates.canonicalize(Dates.CompoundPeriod(round(stop-start, Dates.Second(1)))))
         flush(stdout)
+
+        # return data to master process
+        put!(results, pard)
     end
 
     results = RemoteChannel(()->Channel{Dict}(2*nsets*maximum(pars["num_crossings"])))
@@ -166,6 +166,7 @@ function main(args)
         print("--- queueing | ")
         foreach(k -> print(k, ": ", pard[k], ", "), sort(collect(keys(pard))))
         println()
+        flush(stdout)
         for iter in 1:pard["num_crossings"]
             nruns += 1
             remote_do(run_parset, wpool, pard, iter, results)
