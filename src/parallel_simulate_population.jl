@@ -124,9 +124,7 @@ function main(args)
             pard = merge(pard, seed)
             burn_time = round(Int64, pard["K"] * pard["burn_factor"])
 
-            print("--- running --- ")
-            foreach(k -> print(k, ": ", pard[k], ", "), sort(collect(keys(pard))))
-            println()
+            println("--- running ", rpard["nrun"], " --- ")
             flush(stdout)
 
             # burn in
@@ -159,8 +157,11 @@ function main(args)
 
             # output elapsed time
             stop = now()
-            println("--- ran ", pard["nrun"], " --- elapsed time:",
+            print("--- ran ", pard["nrun"], " --- elapsed time:",
                 Dates.canonicalize(Dates.CompoundPeriod(round(stop-start, Dates.Second(1)))))
+            foreach(k -> print(k, ": ", pard[k], ", "),
+                sort(collect(keys(filter(p->p.first ∉ ["nrun"], pard)))))
+            println()
             flush(stdout)
 
             # return data to master process
