@@ -104,8 +104,7 @@ function main(args)
     nsets = length(parsets)
 
     # setup workers assuming directory is manually added to LOAD_PATH
-    addprocs(min(parsed_args["ncpus"], Sys.CPU_THREADS))
-    wpool = WorkerPool(workers())
+    addprocs(min(parsed_args["ncpus"], round(Int64, Sys.CPU_THREADS/2)))
     extradir = filter((p)->match(r"/", p) !== nothing, LOAD_PATH)[1]
     @everywhere workers() push!(LOAD_PATH, $extradir)
     @everywhere workers() eval(:(using Random))
@@ -157,7 +156,7 @@ function main(args)
 
             # output elapsed time
             stop = now()
-            print("--- ran ", pard["nrun"], " --- elapsed time:",
+            print("--- ran ", pard["nrun"], " --- elapsed time: ",
                 Dates.canonicalize(Dates.CompoundPeriod(round(stop-start, Dates.Second(1)))))
             foreach(k -> print(k, ": ", pard[k], ", "),
                 sort(collect(keys(filter(p->p.first ∉ ["nrun"], pard)))))
