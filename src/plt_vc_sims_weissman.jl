@@ -8,87 +8,180 @@
 
 using Statistics, StatsBase, PyPlot, FileIO, JLD2, Glob, WaveFit, LaTeXStrings
 
-function load_and_plot(fig_to_make::Int64, equalsize=false)
-    if fig_to_make==1 || fig_to_make==2
+function weissman_1(N, fixed_params)
+    mu1, mu2, s, delta = fixed_params[1], fixed_params[2], fixed_params[3], fixed_params[4]
+    #println("N = $N, mu1 = $mu1, mu2 = $mu2, s = $s, delta = $delta")
+    if N < 1/sqrt(mu2*s)
+        return 1.0/mu1 + 1.0/(N*mu2*(s+delta))
+    elseif N < 1/mu1
+        return 1.0/(N*mu1*sqrt(mu2*s))
+    else
+        return sqrt(pi/(2.0*N*mu1*mu2*s))
+    end
+end
+
+function weissman_2(N, fixed_params)
+    mu1, mu2, s, delta = fixed_params[1], fixed_params[2], fixed_params[3], fixed_params[4]
+    println("N = $N, mu1 = $mu1, mu2 = $mu2, s = $s, delta = $delta")
+    if N < 1/delta*log(1+(delta*(exp(delta)-1)/(mu2*s)))
+        return 1.0/(N*mu1*(exp(delta)-1)/(exp(N*delta)-1)) + 1.0/(N*mu1*(s+delta))
+        #return 1.0/(N*mu1*(exp(delta)-1)/(exp(N*delta)-1))
+    elseif N < 2*delta^2/(pi*mu1*mu2*s)
+        return delta/(N*mu1*mu2*s)
+    else
+        return sqrt(pi/(2.0*N*mu1*mu2*s))
+    end
+end
+
+function weissman_3(delta, fixed_params)
+    N, mu1, mu2, s = fixed_params[1], fixed_params[2], fixed_params[3], fixed_params[4]
+    println("N = $N, mu1 = $mu1, mu2 = $mu2, s = $s, delta = $delta")
+    p = (-delta + sqrt(delta^2 + 4*mu2*s))/2
+    return 1.0/(N*mu1*p)
+    # if delta < 2*sqrt(mu2*s)
+    #     return 1.0/(N*mu1*sqrt(mu2*s))
+    # else
+    #     return delta/(N*mu1*mu2*s)
+    # end
+end
+
+function weissman_4(mu2, fixed_params)
+    N, mu1, s, delta = fixed_params[1], fixed_params[2], fixed_params[3], fixed_params[4]
+    println("N = $N, mu1 = $mu1, mu2 = $mu2, s = $s, delta = $delta")
+#    return delta/(N*mu1*mu2*s)
+    p = (-delta + sqrt(delta^2 + 4*mu2*s))/2
+    return 1.0/(N*mu1*p)
+
+
+end
+
+function load_and_plot(fig_to_make::Int64)
+    if fig_to_make==1
         indep_var = "K"
         indep_var_string = L"N"
+        fixed_vars = ["mu1","mu2","s","delta"]
+        pred_function = weissman_1
+    elseif fig_to_make==2
+        indep_var = "K"
+        indep_var_string = L"N"
+        fixed_vars = ["mu1","mu2","s","delta"]
+        pred_function = weissman_2
     elseif fig_to_make==3
         indep_var = "delta"
         indep_var_string = L"\delta"
+        fixed_vars = ["K","mu1","mu2","s"]
+        pred_function = weissman_3
     elseif fig_to_make==4
         indep_var = "mu2"
-        indep_var_string = L"\mu_1"
+        indep_var_string = L"\mu_2"
+        fixed_vars = ["K","mu1","s","delta"]
+        pred_function = weissman_4
     end
-    sigmalist = [0.5,1e-1,0.05,1e-2,1e-8]
+    #sigmalist = [1e-8,1e-2]
+    #low_sigma_results = []
+    #high_sigma_results = []
+
     results = Dict()
 
     namestring = "weissman_fig_"*string(fig_to_make)
     files = glob(namestring * "*.jld2")
     # glob all the output files
 
+    fixed_var_vals = []
+
     for (fi, file) in enumerate(files)
-        ctimes, pargs = load(file, "crossing_times", "parsed_args")
-        file_results = convert(Array{Int64,1}, ctimes)
-        indep_var_vals = pargs[indep_var]
-        # println("$fig_to_make, $indep_var_vals, $(length(file_results))")
-        if !(pargs["sigma"] in sigmalist)
-            println("$(pargs[sigma]) not in sigmalist")
-            continue
+        f = load(file)
+        if fi == 1
+            [push!(fixed_var_vals, f["parsed_args"][x]) for x in fixed_vars]
+            println("ok")
+            println(fixed_var_vals)
         end
-        if pargs["sigma"] in keys(results)
-            push!(results[pargs["sigma"]], [indep_var_vals, file_results])
+        file_results = convert(Array{Int64,1},f["crossing_times"])
+        indep_var_val = f["parsed_args"][indep_var]
+        tmp_sigma = f["parsed_args"]["sigma"]
+        println("$fig_to_make, $indep_var_val, $tmp_sigma, $(length(file_results))")
+        #if f["params"]["sigma"] == sigmalist[1]
+        #    push!(low_sigma_results, [indep_var_vals, file_results])
+        # elseif f["params"]["sigma"] == sigmalist[2]
+        #     push!(high_sigma_results, [indep_var_vals, file_results])
+        if [tmp_sigma, indep_var_val] in collect(keys(results))
+            [push!(results[[tmp_sigma, indep_var_val]], x) for x in file_results]
         else
-            results[pargs["sigma"]] = []
+            results[[tmp_sigma, indep_var_val]] = Float64[]
+            [push!(results[[tmp_sigma, indep_var_val]], x) for x in file_results]
+
         end
     end
-    minsize = minimum([minimum([length(x[2]) for x in results[sigma]]) for sigma in keys(results)])
-    if equalsize == 1
-        println("Number of samples: $minsize")
-    end
+    #println(low_sigma_results)
+    #println(high_sigma_results)
+
+    indep_var_vals = unique([x[2] for x in collect(keys(results))])
+    sigma_vals = unique([x[1] for x in collect(keys(results))])
+    sort!(indep_var_vals)
+    sort!(sigma_vals)
+
+    println("made it here")
+
+    # fig = figure()
+    # ax1 = errorbar(
+    #     [x[1] for x in low_sigma_results],
+    #     [mean(x[2]) for x in low_sigma_results],
+    #     yerr = [std(x[2]) for x in low_sigma_results],
+    #     label = L"\sigma = 10^{-8}"
+    # )
+    # ax2 = errorbar(
+    #     [x[1] for x in high_sigma_results],
+    #     [mean(x[2]) for x in high_sigma_results],
+    #     yerr = [std(x[2]) for x in high_sigma_results],
+    #     label = L"\sigma = 10^{-2}"
+    # )
 
     fig = figure()
-    ax = []
-    for sigma in sort(collect(keys(results)), rev=true)
-        len = length(results[sigma])
-        if equalsize <= 0
-            samps = (:)
-        elseif equalsize == 1
-            samps = 1:minsize
-        elseif equalsize < minsize
-            samps = 1:equalsize
-        else
-            error("some sample sizes too small for " * string(equalsize) * " samples")
-        end
-
-        push!(ax,
-            errorbar(
-                     [x[1] for x in results[sigma]],
-                     [median(x[2][samps]) for x in results[sigma]],
-                     yerr = vcat([quantile(x[2][samps], 0.25) for x in results[sigma]]',
-                                 [quantile(x[2][samps], 0.75) for x in results[sigma]]'),
-                     fmt = "o",
-                     alpha = 0.75,
-                     label = L"$\sigma$ = " * string(sigma),
-                     )
-            )
+    for sigma in sigma_vals
+        #println([results[[sigma,x]] for x in indep_var_vals])
+        med = [median(results[[sigma, x]]) for x in indep_var_vals]
+        lower_err = [quantile(results[[sigma, x]], 0.25) for x in indep_var_vals]
+        upper_err = [quantile(results[[sigma, x]], 0.75) for x in indep_var_vals]
+        ax = errorbar(
+        indep_var_vals,
+        med,
+        yerr = [lower_err,upper_err],
+        label = sigma
+        )
     end
+
+
+    if fig_to_make==3
+        plot_line_vals = collect(linspace(minimum(indep_var_vals),maximum(indep_var_vals),20))
+    else
+        plot_line_vals = collect(10 .^ range(round(Int,log10(minimum(indep_var_vals))),
+            round(Int,log10(maximum(indep_var_vals))),length=20))
+    end
+
+
+    analytical_prediction = [pred_function(2*x, fixed_var_vals) for x in plot_line_vals]
+    plot(plot_line_vals,analytical_prediction,c="k",ls="--")
+
+    #plot(indep_var_vals)
 
     ylabel(L"\tau")
     xlabel(indep_var_string)
     title("figure ($(collect('a':'z')[fig_to_make]))")
     if (fig_to_make != 3)
         xscale("log")
-        yscale("log")
+        #yscale("log")
     end
+    yscale("log")
     legend(loc=3)
-    savefig("julia_weissman_$fig_to_make.pdf")
+    #savefig("julia_weissman_$(fig_to_make)_v2.pdf")
+    display(fig)
 #    return low_sigma_results, high_sigma_results
 
 #    return (sigmalist, UL_list, all_results)
 end
 
 #(low_sigma_results, high_sigma_results) = load_and_plot(1)
-load_and_plot(1, false)
+load_and_plot(1)
 load_and_plot(2)
 load_and_plot(3)
 load_and_plot(4)
