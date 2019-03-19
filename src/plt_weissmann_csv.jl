@@ -22,7 +22,7 @@ for sigma in sort(unique(w5[:sigma]), rev=true)
     push!(ax,
         errorbar(
                  [k for k in ks],
-                 [median(ws[ws[:K].==k,:crossing_time]) for k in ks],
+                 [mean(ws[ws[:K].==k,:crossing_time]) for k in ks],
                  yerr = vcat([quantile(ws[ws[:K].==k,:crossing_time], 0.25) for k in ks]',
                              [quantile(ws[ws[:K].==k,:crossing_time], 0.75) for k in ks]'),
                  alpha = 0.75,

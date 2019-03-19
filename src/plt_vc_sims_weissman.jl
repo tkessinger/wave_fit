@@ -139,12 +139,12 @@ function load_and_plot(fig_to_make::Int64)
     fig = figure()
     for sigma in sigma_vals
         #println([results[[sigma,x]] for x in indep_var_vals])
-        med = [median(results[[sigma, x]]) for x in indep_var_vals]
+        m = [mean(results[[sigma, x]]) for x in indep_var_vals]
         lower_err = [quantile(results[[sigma, x]], 0.25) for x in indep_var_vals]
         upper_err = [quantile(results[[sigma, x]], 0.75) for x in indep_var_vals]
         ax = errorbar(
         indep_var_vals,
-        med,
+        m,
         yerr = [lower_err,upper_err],
         label = sigma
         )
