@@ -123,7 +123,7 @@ function main(args)
             pard = merge(pard, seed)
             burn_time = round(Int64, pard["K"] * pard["burn_factor"])
 
-            println("--- running ", rpard["nrun"], " --- ")
+            println("--- running ", pard["nrun"], " --- ")
             flush(stdout)
 
             # burn in
