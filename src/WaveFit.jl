@@ -78,7 +78,7 @@ Base.hash(x::FastHashUInt128, h::UInt) = xor(x.i, h)
 function key(fc::FitnessClass)
     kint = UInt128(fc.bg_mutations)
     for i=1:length(fc.loci)
-        @inbounds kint += (Int128(1) << (62+i)) * fc.loci[i]
+        @inbounds kint += (UInt128(1) << (62+i)) * fc.loci[i]
     end
     return FastHashUInt128(kint)
 end
