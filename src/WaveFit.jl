@@ -8,13 +8,14 @@
 
 module WaveFit
 export evolve!, selection!, mutation!, evolve_multi!
+export mutation_v2!, mutation_multinomial!, mutation_multinomial_v2!, mutation_multinomial_old!
+export focal_mutation!
 export Clone
 export Population, Landscape
 export FitnessClass
 export get_mean_fitness, get_frequencies
-export copy
 
-using Distributions, Combinatorics, StatsBase
+using Distributions, StatsBase
 
 mutable struct Landscape
     σ::Float64
@@ -37,40 +38,73 @@ mutable struct FitnessClass
 
     # constructors
     FitnessClass(n, bg_mutations, loci) = new(n, bg_mutations, loci, 0.0, 0.0)
-    FitnessClass(n) = new(n, 0, [0, 0])
+    FitnessClass(n) = FitnessClass(n, 0, [0, 0])
     FitnessClass() = FitnessClass(1)
 end
 
-function copy(fc::FitnessClass)
+function Base.copy(fc::FitnessClass)
     return FitnessClass(fc.n, fc.bg_mutations, fc.loci)
 end
 
-function copy!(fc_to::FitnessClass, fc_from::FitnessClass)
+function Base.copy!(fc_to::FitnessClass, fc_from::FitnessClass)
     fc_to.n = fc_from.n
     fc_to.bg_mutations = fc_from.bg_mutations
     fc_to.loci .= fc_from.loci
 end
 
 # generate a key from a FitnessClass as an array
+# function key(fc::FitnessClass)
+#     return vcat([fc.bg_mutations], fc.loci)
+# end
+#
+# function key2(fc::FitnessClass)
+#     return "$(fc.bg_mutations), $(fc.loci)"
+# end
+#
+# function key3(fc::FitnessClass)
+#     karr = zeros(Int64, 1+length(fc.loci))
+#     karr[1] = fc.bg_mutations
+#     karr[2:end] = fc.loci
+#     return karr
+# end
+
+# borrowed from Steve Johnson
+# https://discourse.julialang.org/t/poor-time-performance-on-dict/9656/12
+struct FastHashUInt128; i::UInt128; end
+Base.:(==)(x::FastHashUInt128, y::FastHashUInt128) = x.i == y.i
+Base.hash(x::FastHashUInt128, h::UInt) = xor(x.i, h)
+
+# generate a key from a FitnessClass as an Int128 assuming **biallelic** loci
 function key(fc::FitnessClass)
-    return vcat([fc.bg_mutations], fc.loci)
+    kint = UInt128(fc.bg_mutations)
+    for i=1:length(fc.loci)
+        @inbounds kint += (Int128(1) << (62+i)) * fc.loci[i]
+    end
+    return FastHashUInt128(kint)
+end
+
+# generate a key from an array with bg_mutations then loci
+function key(arr::Array{Int64,1})
+    kint = UInt128(arr[1])
+    for i=1:length(arr)-1
+        @inbounds kint += (Int128(1) << (62+i)) * arr[i+1]
+    end
+    return FastHashUInt128(kint)
 end
 
 mutable struct Population
     K::Int64    # carrying capacity
     N::Int64    # population size
     landscape::Landscape
-    classes::Dict{Array{Int64,1}, FitnessClass}
+    classes::Dict{FastHashUInt128, FitnessClass}
     mean_bg_fitness::Float64
     mean_loci_fitness::Float64
     mean_fitness::Float64
     var_bg_fitness::Float64
     generation::Int64
-    #occupied_bubbles::Array{Array{Int64,1}}
-    #bubble_history::Array{Array{Int64,1}}
 
     Population(K, landscape) = new(K, K, landscape, Dict(key(FitnessClass(K)) => FitnessClass(K)),
-                                   1.0, 1.0, 1.0, 1.0, 1)#, Array{Int64,1}[], Array{Int64, 1})
+                                   1.0, 1.0, 1.0, 1.0, 1)
     Population(K) = Population(K, Landscape())
 end
 
@@ -91,7 +125,6 @@ function calc_fitness!(pop::Population)
     pop.mean_loci_fitness = 0
     pop.mean_fitness = 0
     pop.var_bg_fitness = 0
-    pop.N = sum([class.n for class in values(pop.classes)])
 
     # calculate the mean fitness and variance
     # there might be a smarter way to do this other than iterating over all clones twice...
@@ -111,21 +144,11 @@ function calc_fitness!(pop::Population)
     pop.mean_fitness = pop.mean_bg_fitness + pop.mean_loci_fitness
 end
 
-
-
-function get_frequencies(pop::Population)
-    freqs = Float64[0.0,0.0]
-    for (k, class) in pop.classes
-        freqs += [1.0*(x != false) for x in class.loci]*class.n
-    end
-    freqs /= pop.N
-    return freqs
-end
-
 function selection!(pop::Population)
     # generates a Poisson-distributed offspring number for each class
     # still todo: incorporate the focal loci
 
+    calc_pop_size!(pop)
     calc_fitness!(pop)
     # poisson offspring number distribution dependent on K and the fitness
     # the K/N term keeps the population size around K
@@ -136,7 +159,6 @@ function selection!(pop::Population)
         end
         total_fitness = bg_fitness + class.loci_fitness
         offspring_dist = Poisson(max(class.n * (1 + total_fitness - pop.mean_fitness) * pop.K / pop.N, 0.0))
-        #offspring_dist = Poisson(max(class.n*(1+total_fitness)/(1+mean_fitness)*population.K/N,0.0))
 
         num_offspring = rand(offspring_dist)
         class.n = num_offspring
@@ -183,10 +205,130 @@ function mutation!(pop::Population)
     end
 end
 
+function mutation_v2!(pop::Population)
+    # randomly adds Poisson(UL) mutations to each individual.
+
+    mut_dist = Poisson(pop.landscape.UL)
+    num_muts = rand(mut_dist, pop.N)
+
+    # capture class keys and their sizes and iterate over each class
+    keys_ns = [(k, pop.classes[k].n) for k in keys(pop.classes)]
+    i = 0
+    for (k, n) in keys_ns
+        class = pop.classes[k]
+        tempclass = copy(class)
+        for indv in 1:n
+            i += 1
+            if num_muts[i] > 0
+                class.n -= 1
+                tempclass.bg_mutations = class.bg_mutations + num_muts[i]
+                tempk = key(tempclass)
+                if (tempk in keys(pop.classes))
+                    pop.classes[tempk].n += 1
+                else
+                    # the `copy` here is important
+                    pop.classes[tempk] = copy(tempclass)
+                    pop.classes[tempk].n = 1
+                end
+            end
+        end
+
+        # class is empty now, so delete it
+        if class.n == 0
+            pop!(pop.classes, k)
+        end
+    end
+end
+
 function mutation_multinomial!(pop::Population)
-    # generates a poisson random number of mutations,
-    # assigns a multinomially distributed number of mutations to each class,
-    # and distributes them randomly among the individuals in the class
+    # randomly adds Poisson(UL) mutations to each individual
+
+    mut_dist = Poisson(pop.N*pop.landscape.UL)
+    total_muts = rand(mut_dist)
+
+    # create multinomial sample
+    # (empirical evidence suggests this might be faster than
+    #  Multinomial(n,k) for 10n<=k)
+    distN = DiscreteUniform(1, pop.N)
+    num_muts = zeros(Int64, pop.N)
+    for i = 1:total_muts
+        @inbounds num_muts[rand(distN)] += 1
+    end
+
+    # capture class keys and their sizes and iterate over each class
+    keys_ns = [(k, pop.classes[k].n) for k in keys(pop.classes)]
+
+    # iterate over each individual and update its fitness class
+    i = 0
+    for (k, n) in keys_ns
+        class = pop.classes[k]
+        tempclass = copy(class)
+        for indv in 1:n
+            i += 1
+            if num_muts[i] > 0
+                class.n -= 1
+                tempclass.bg_mutations = class.bg_mutations + num_muts[i]
+                tempk = key(tempclass)
+                oldclass = get(pop.classes, tempk, nothing)
+                if oldclass != nothing
+                    oldclass.n += 1
+                else # create new class with `copy`
+                    newclass = copy(tempclass)
+                    newclass.n = 1
+                    pop.classes[tempk] = newclass
+                end
+            end
+        end
+
+        # class is empty now, so delete it
+        if class.n == 0
+            pop!(pop.classes, k)
+        end
+    end
+end
+
+function mutation_multinomial_v2!(pop::Population)
+    # randomly adds Poisson(UL) mutations to each individual
+
+    mut_dist = Poisson(pop.N*pop.landscape.UL)
+    total_muts = rand(mut_dist)
+
+    # create multinomial sample
+    num_muts = rand(Multinomial(total_muts, pop.N))
+
+    # capture class keys and their sizes and iterate over each class
+    keys_ns = [(k, pop.classes[k].n) for k in keys(pop.classes)]
+
+    # iterate over each individual and update its fitness class
+    i = 0
+    for (k, n) in keys_ns
+        class = pop.classes[k]
+        tempclass = copy(class)
+        for indv in 1:n
+            i += 1
+            if num_muts[i] > 0
+                class.n -= 1
+                tempclass.bg_mutations = class.bg_mutations + num_muts[i]
+                tempk = key(tempclass)
+                if (tempk in keys(pop.classes))
+                    pop.classes[tempk].n += 1
+                else
+                    # the `copy` here is important
+                    pop.classes[tempk] = copy(tempclass)
+                    pop.classes[tempk].n = 1
+                end
+            end
+        end
+
+        # class is empty now, so delete it
+        if class.n == 0
+            pop!(pop.classes, k)
+        end
+    end
+end
+
+function mutation_multinomial_old!(pop::Population)
+    # randomly adds Poisson(UL) mutations to each individual.
 
     mut_dist = Poisson(pop.N*pop.landscape.UL)
     num_muts = rand(mut_dist)
@@ -224,6 +366,15 @@ function mutation_multinomial!(pop::Population)
     end
 end
 
+function get_frequencies(pop::Population)
+    freqs = Float64[0.0,0.0]
+    for (k, class) in pop.classes
+        freqs += [1.0*(x != false) for x in class.loci]*class.n
+    end
+    freqs /= pop.N
+    return freqs
+end
+
 function focal_mutation!(pop::Population)
     current_freqs = get_frequencies(pop)
     wild_type = (1.0-current_freqs[1])*pop.N
@@ -244,13 +395,15 @@ function focal_mutation!(pop::Population)
         probabilities = weights(1.0*[x.n for x in wt_classes])
         classes_to_mutate = sample(wt_classes, probabilities, wt_muts)
         for cl in classes_to_mutate
-            if [cl.bg_mutations, 1, 0] in keys(pop.classes)
-                pop.classes[[cl.bg_mutations, 1, 0]].n += 1
+            k = key([cl.bg_mutations, 1, 0])
+            oldclass = get(pop.classes, k, nothing)
+            if oldclass != nothing
+                oldclass.n += 1
             else
                 tempclass = copy(cl)
                 tempclass.n = 1
                 tempclass.loci = [1, 0]
-                pop.classes[key(tempclass)] = tempclass
+                pop.classes[k] = tempclass
             end
             cl.n -= 1
         end
@@ -263,9 +416,8 @@ function focal_mutation!(pop::Population)
         println(single_mut)
     end
 
-
     sm_dist = Poisson(single_mut*pop.landscape.μ[2])
-    s_muts = rand(sm_dist)
+    sm_muts = rand(sm_dist)
     sm_classes = FitnessClass[]
     for (k, class) in pop.classes
         if class.loci[2] == 0 && class.loci[1] != 0
@@ -274,62 +426,19 @@ function focal_mutation!(pop::Population)
     end
     if length(sm_classes) > 0
         probabilities = weights(1.0*[x.n for x in sm_classes])
-        classes_to_mutate = sample(sm_classes, probabilities, s_muts)
+        classes_to_mutate = sample(sm_classes, probabilities, sm_muts)
         for cl in classes_to_mutate
-            if [cl.bg_mutations, 1, 1] in keys(pop.classes)
-                pop.classes[[cl.bg_mutations, 1, 1]].n += 1
+            k = key([cl.bg_mutations, 1, 1])
+            oldclass = get(pop.classes, k, nothing)
+            if oldclass != nothing
+                oldclass.n += 1
             else
                 tempclass = copy(cl)
                 tempclass.n = 1
                 tempclass.loci = [1, 1]
-                pop.classes[key(tempclass)] = tempclass
+                pop.classes[k] = tempclass
             end
             cl.n -= 1
-        end
-    end
-end
-
-function mutation_small!(pop::Population)
-    # randomly adds Poisson(UL) mutations to each individual.
-
-    mut_dist = Poisson(pop.N*pop.landscape.UL)
-    total_muts = rand(mut_dist)
-
-    classes = collect(keys(pop.classes))
-    probabilities = weights(1.0*[x.n for x in values(pop.classes)])
-    classes_to_mutate = sample(classes, probabilities, total_muts)
-
-    mut_dict = Dict()
-
-    for cl in classes_to_mutate
-        if cl in keys(mut_dict)
-            mut_dict[cl] += 1
-        else
-            mut_dict[cl] = 1
-        end
-    end
-    #println("$mut_dict")
-    for cl in keys(mut_dict)
-        tempclass = copy(pop.classes[cl])
-        indvs_to_mutate = rand(1:pop.classes[cl].n, mut_dict[cl])
-        tmp_indvs = Dict()
-        for indv in indvs_to_mutate
-            if indv in keys(tmp_indvs)
-                tmp_indvs[indv] += 1
-            else
-                tmp_indvs[indv] = 1
-            end
-        end
-        for indv in keys(tmp_indvs)
-            pop.classes[cl].n -= 1
-            tempclass.bg_mutations = pop.classes[cl].bg_mutations + tmp_indvs[indv]
-            tempk = key(tempclass)
-            if (tempk in keys(pop.classes))
-                pop.classes[tempk].n += 1
-            else
-                pop.classes[tempk] = copy(tempclass)
-                pop.classes[tempk].n = 1
-            end
         end
     end
 end
@@ -347,98 +456,6 @@ function evolve_multi!(pop::Population)
     focal_mutation!(pop)
     pop.generation += 1
 end
-
-# function focal_mutation_adj!(pop::Population)
-#
-#     current_freqs = get_frequencies(pop)
-#     wild_type = (1.0-current_freqs[1])*pop.N
-#     if wild_type < 0
-#         println(current_freqs)
-#         println(wild_type)
-#     end
-#
-#     allocated_classes = []
-#     for (cl, class) in pop.occupied_bubbles
-#         if length(allocated_classes) < cl.loci[1]
-#             [push!(allocated_classes, []) for x in range(length(allocated_classes), cl.loci[1] - length(allocated_classes))]
-#         end
-#         push!(allocated_classes[cl.loci[1]], cl_loci[2])
-#     end
-#
-#
-#     smallest_unallocated = min(x[1] for x in pop.occupied_bubbles)
-#     bubble_to_allocate = smallest_unallocated
-#
-#     new_classes = []
-#
-#     wt_dist = Poisson(wild_type*pop.landscape.μ[1])
-#     wt_muts = rand(wt_dist)
-#     wt_classes = FitnessClass[]
-#     for (k, class) in pop.classes
-#         if class.loci[1] == 0
-#             push!(wt_classes, class)
-#         end
-#     end
-#     if length(wt_classes) > 0
-#         probabilities = weights(1.0*[x.n for x in wt_classes])
-#         classes_to_mutate = sample(wt_classes, probabilities, wt_muts)
-#         for cl in classes_to_mutate
-#             #if [cl.bg_mutations, 1, 0] in keys(pop.classes)
-#             #    pop.classes[[cl.bg_mutations, 1, 0]].n += 1
-#             #else
-#                 tempclass = copy(cl)
-#                 tempclass.n = 1
-#                 #tempclass.loci = [1, 0]
-#                 tempclass.loci = [bubble_to_allocate, 0]
-#                 push!(pop.occupied_bubbles, [bubble_to_allocate, 0])
-#                 push!(new_classes, [bubble_to_allocate, 0])
-#                 bubble_to_allocate += 1
-#                 pop.classes[key(tempclass)] = tempclass
-# #            end
-#             cl.n -= 1
-#         end
-#     end
-#
-#     for (cl, class) in new_classes
-#         if length(allocated_classes) < class[1]
-#             [push!(allocated_classes, []) for x in range(length(allocated_classes), class[1] - length(allocated_classes))]
-#         end
-#         push!(allocated_classes[class[1]], class[2])
-#     end
-#
-#     current_freqs = get_frequencies(pop)
-#     single_mut = (current_freqs[1]-current_freqs[2])*pop.N
-#     if single_mut < 0
-#         println(current_freqs)
-#         println(single_mut)
-#     end
-#
-#     sm_dist = Poisson(single_mut*pop.landscape.μ[2])
-#     s_muts = rand(sm_dist)
-#     sm_classes = FitnessClass[]
-#     for (k, class) in pop.classes
-#         if class.loci[2] == 0 && class.loci[1] != 0
-#             push!(sm_classes, class)
-#         end
-#     end
-#     if length(sm_classes) > 0
-#         probabilities = weights(1.0*[x.n for x in sm_classes])
-#         classes_to_mutate = sample(sm_classes, probabilities, s_muts)
-#         for cl in classes_to_mutate
-#             #if [cl.bg_mutations, cl.loci[1], 1] in keys(pop.classes)
-#             #    pop.classes[[cl.bg_mutations, 1, 1]].n += 1
-#             #else
-#                 tempclass = copy(cl)
-#                 tempclass.n = 1
-#                 #to_allocate = max(x[2] for x in )
-#                 tempclass.loci = [cl.loci[1], 1]
-#                 pop.classes[key(tempclass)] = tempclass
-#             end
-#             cl.n -= 1
-#         end
-#     end
-# end
-
 
 # final end statement to close the module
 end
