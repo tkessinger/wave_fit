@@ -12,33 +12,57 @@ function weissman5a_theory(N, fixed_params)
     end
 end
 
-w5 = CSV.read("weissman5a.csv")
-
-fig = figure()
-ax = []
-for sigma in sort(unique(w5[:sigma]), rev=true)
-    ws = w5[w5[:sigma].==sigma,:]
-    ks = sort(unique(ws[:K]))
-    push!(ax,
-        errorbar(
-                 [k for k in ks],
-                 [mean(ws[ws[:K].==k,:crossing_time]) for k in ks],
-                 yerr = vcat([quantile(ws[ws[:K].==k,:crossing_time], 0.25) for k in ks]',
-                             [quantile(ws[ws[:K].==k,:crossing_time], 0.75) for k in ks]'),
-                 alpha = 0.75,
-                 label = L"$\sigma$ = " * string(sigma),
-                 )
-        )
+function weissman5b_theory(N, fixed_params)
+    mu1, mu2, s, delta = fixed_params[1], fixed_params[2], fixed_params[3], fixed_params[4]
+    #println("N = $N, mu1 = $mu1, mu2 = $mu2, s = $s, delta = $delta")
+    if N < 1/delta*log(1+(delta*(exp(delta)-1)/(mu2*s)))
+        return 1.0/(N*mu1*(exp(delta)-1)/(exp(N*delta)-1)) + 1.0/(N*mu1*(s+delta))
+        #return 1.0/(N*mu1*(exp(delta)-1)/(exp(N*delta)-1))
+    elseif N < 2*delta^2/(pi*mu1*mu2*s)
+        return delta/(N*mu1*mu2*s)
+    else
+        return sqrt(pi/(2.0*N*mu1*mu2*s))
+    end
 end
 
-analytical_prediction = [weissman5a_theory(2*k, [unique(w5[:mu1])[1],
-                                               unique(w5[:mu2])[1],
-                                               unique(w5[:s])[1],
-                                               unique(w5[:delta])[1]]) for k in sort(unique(w5[:K]))];
-plot(sort(unique(w5[:K])), analytical_prediction, c="k", ls="--")
+function plot_w5(data, theory, file = nothing)
+    fig = figure()
+    ax = []
+    for sigma in sort(unique(data[:sigma]), rev=true)
+        ds = data[data[:sigma].==sigma,:]
+        ks = sort(unique(ds[:K]))
+        push!(ax,
+            errorbar(
+                     [k for k in ks],
+                     [mean(ds[ds[:K].==k,:crossing_time]) for k in ks],
+                     yerr = vcat([quantile(ds[ds[:K].==k,:crossing_time], 0.25) for k in ks]',
+                                 [quantile(ds[ds[:K].==k,:crossing_time], 0.75) for k in ks]'),
+                     alpha = 0.75,
+                     label = L"$\sigma$ = " * string(sigma),
+                     )
+            )
+    end
 
-xscale("log")
-yscale("log")
-ylabel(L"\tau")
-display(fig)
-#xlabel(indep_var_string)
+    ks = sort(unique(data[:K]))
+    mu1s = sort(unique(data[:mu1]))
+    mu2s = sort(unique(data[:mu2]))
+    ss  = sort(unique(data[:s]))
+    deltas = sort(unique(data[:delta]))
+
+    analytical_prediction = [theory(2*k, [mu1s[1], mu2s[1], ss[1], deltas[1]]) for k in ks];
+    plot(sort(unique(data[:K])), analytical_prediction, c="k", ls="--")
+
+    xscale("log")
+    yscale("log")
+    #xlabel(indep_var_string)
+    ylabel(L"\tau")
+    if file == nothing
+        display(fig)
+    end
+end
+
+w5a = CSV.read("weissman_fig5a_2019_03/weissman5a.csv")
+w5b = CSV.read("weissman_fig5b_2019_03/weissman5b.csv")
+
+plot_w5(w5a, weissman5a_theory)
+plot_w5(w5b, weissman5b_theory)

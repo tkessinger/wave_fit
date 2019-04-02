@@ -87,7 +87,7 @@ end
 function key(arr::Array{Int64,1})
     kint = UInt128(arr[1])
     for i=1:length(arr)-1
-        @inbounds kint += (Int128(1) << (62+i)) * arr[i+1]
+        @inbounds kint += (UInt128(1) << (62+i)) * arr[i+1]
     end
     return FastHashUInt128(kint)
 end
