@@ -1,0 +1,43 @@
+{
+  "mu1":
+  {
+    "value": 1e-5
+  },
+  "mu2":
+  {
+    "value": 0.0
+  },
+  "delta":
+  {
+    "value": [-1e-3,-1e-2,-1e-1]
+  },
+  "sigma":
+  {
+    "value": [5e-2,5e-8]
+  },
+  "num_crossings":
+  {
+    "value": 50
+  },
+  "UL":
+  {
+    "value": 1.0
+  },
+  "s":
+  {
+    "value": [0.0]
+  },
+  "K":
+  {  "range":
+    {
+      "log": 10,
+      "start": 3,
+      "stop": 6,
+      "length": 10
+    }
+  },
+  "file":
+  {
+    "value": "output/parallel_sims/grid_sims_sweeps_s01_UL1.csv"
+  }
+}

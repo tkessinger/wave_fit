@@ -1,0 +1,44 @@
+{
+  "mu1":
+  {
+    "value": 3e-6
+  },
+  "mu2":
+  {
+    "value": 1e-4
+  },
+  "delta":
+  {
+    "range":
+    {
+      "log": 10,
+      "start": -6,
+      "stop": -2,
+      "length": 9
+    }
+  },
+  "sigma":
+  {
+    "value": [5e-2,5e-8]
+  },
+  "num_crossings":
+  {
+    "value": 50
+  },
+  "UL":
+  {
+    "value": 1.0
+  },
+  "s":
+  {
+    "value": [0.1,0.01]
+  },
+  "K":
+  {
+    "value":[1e5]
+  },
+  "file":
+  {
+    "value": "output/parallel_sims/var_sigma_delta.csv"
+  }
+}
