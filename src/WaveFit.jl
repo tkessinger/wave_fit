@@ -74,7 +74,7 @@ struct FastHashUInt128; i::UInt128; end
 Base.:(==)(x::FastHashUInt128, y::FastHashUInt128) = x.i == y.i
 Base.hash(x::FastHashUInt128, h::UInt) = xor(x.i, h)
 
-# generate a key from a FitnessClass as an Int128 assuming **biallelic** loci
+# generate a key from a FitnessClass as an UInt128 assuming **biallelic** loci
 function key(fc::FitnessClass)
     kint = UInt128(fc.bg_mutations)
     for i=1:length(fc.loci)
