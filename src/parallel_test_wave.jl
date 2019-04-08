@@ -200,7 +200,6 @@ function main(args)
 
         # add to table (must convert dict keys to symbols) and save
         for row in 1:size(data)[1]
-            println([(Symbol(datacols[col]), data[row,col]) for col in 1:length(datacols)])
             push!(dat, Dict(vcat([(Symbol(k), resd[k]) for k in keys(resd)],
                                  [(Symbol(datacols[col]), data[row,col]) for col in 1:length(datacols)])))
         end
