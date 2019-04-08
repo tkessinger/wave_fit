@@ -1,0 +1,36 @@
+{
+  "sigma":
+  {
+    "value": [0.5,1e-1,0.05,1e-2,1e-3,1e-4,1e-5,1e-6,1e-7,1e-8]
+  },
+  "UL":
+  {
+    "range":
+    {
+      "log": 10,
+      "start": -2,
+      "stop": 2,
+      "length": 13
+    }
+  },
+  "K":
+  {
+    "value": 100000
+  },
+  "ngens":
+  {
+    "value": 100000
+  },
+  "sgens":
+  {
+    "value": 10
+  },
+  "burn_factor":
+  {
+    "value": 0.9
+  },
+  "replicates":
+  {
+    "value": 10
+  }
+}
