@@ -1,5 +1,11 @@
 using CSV, PyPlot, Statistics
 
+function seqfix(N, fixed_params)
+    mu1, mu2, s, delta = fixed_params[1], fixed_params[2], fixed_params[3], fixed_params[4]
+
+    return 1.0/(N*mu1*(exp(delta)-1)/(exp(N*delta)-1)) + 1.0/(N*mu2*(s+delta))
+end
+
 function w5_theory(N, fixed_params)
     mu1, mu2, s, delta = fixed_params[1], fixed_params[2], fixed_params[3], fixed_params[4]
 
@@ -52,7 +58,8 @@ function w5_theory(N, fixed_params)
     end
 end
 
-function plot_w5(data, theory, var; xlog = true, ylog = true, ymax = nothing, loc = 3, file = nothing)
+function plot_w5(data, theory, var; xlog = true, ylog = true, ymax = nothing,
+                 loc = 3, xtic = nothing, ytic = nothing, file = nothing)
     fig = figure()
     ax = []
     for sigma in sort(unique(data[:sigma]), rev=true)
@@ -81,6 +88,9 @@ function plot_w5(data, theory, var; xlog = true, ylog = true, ymax = nothing, lo
     if var == :K
         analytical_prediction_drift = [theory(2*k, [mu1s[1], mu2s[1], ss[1], deltas[1]]) for k in ks];
         plot(sort(unique(data[var])), analytical_prediction_drift, c="k", ls="--")
+        # t2 = (N,σ) -> sqrt(24*log(N*σ))/(N*σ)*N
+        # analytical_prediction_draft = [seqfix(2*t2(k,1), [mu1s[1], mu2s[1], ss[1], 1e-4]) for k in ks];
+        # plot(sort(unique(data[var])), analytical_prediction_draft, c="k", ls="-.")
     elseif var == :delta
         analytical_prediction_drift = [theory(2*ks[1], [mu1s[1], mu2s[1], ss[1], d]) for d in deltas];
         plot(sort(unique(data[var])), analytical_prediction_drift, c="k", ls="--")
@@ -100,6 +110,14 @@ function plot_w5(data, theory, var; xlog = true, ylog = true, ymax = nothing, lo
         yscale("log")
     end
 
+    if xtic != nothing
+        xticks(xtic)
+    end
+
+    if ytic != nothing
+        yticks(ytic)
+    end
+
     if ylim != nothing
         ylim(0, ymax)
     end
@@ -109,15 +127,19 @@ function plot_w5(data, theory, var; xlog = true, ylog = true, ymax = nothing, lo
     legend(loc=loc)
     if file == nothing
         display(fig)
+    else
+        savefig(file)
     end
 end
 
-w5a = CSV.read("weissman_fig5a_2019_03/weissman5a.csv")
-w5b = CSV.read("weissman_fig5b_2019_03/weissman5b.csv")
-w5c = CSV.read("weissman_fig5c_2019_04/weissman5c.csv")
-w5d = CSV.read("weissman_fig5d_2019_04/weissman5d.csv")
+w5a = CSV.read("5a_2019_03/weissman5a.csv")
+w5b = CSV.read("5b_2019_03/weissman5b.csv")
+w5c = CSV.read("5c_2019_04/weissman5c.csv")
+w5d = CSV.read("5d_2019_04/weissman5d.csv")
 
-plot_w5(w5a, w5_theory, :K)
-plot_w5(w5b, w5_theory, :K)
-plot_w5(w5c, w5_theory, :delta, xlog=false, loc=4)
-plot_w5(w5d, w5_theory, :mu2)
+plot_w5(w5a, w5_theory, :K, file="julia_weissman_5a.pdf")
+plot_w5(w5b, w5_theory, :K, file="julia_weissman_5b.pdf")
+plot_w5(w5c, w5_theory, :delta, xlog=false, loc=4, xtic=[-0.01, -0.005, 0.0, 0.005, 0.01], file="julia_weissman_5c.pdf")
+plot_w5(w5d, w5_theory, :mu2, file="julia_weissman_5d.pdf")
+
+# plot_w5(w5b, w5_theory, :K)
