@@ -54,7 +54,7 @@ for (si, sigma) in enumerate(sigma_vals)
         mean_sts = [mean(sts[(sts[:K].==k) .& (sts[:delta].==-1.0*sval), :crossing_time]) for (k, delta) in ks_and_deltas]
         mean_sts = reverse(mean_sts, dims=1)
         fig, ax1 = subplots(1,1)
-        imshow(log10.(mean_cts/mean_sts),vmin=-3,vmax=3,cmap="RdBu")
+        imshow(log10.(mean_cts./mean_sts),vmin=-3,vmax=3,cmap="RdBu")
         #imshow(log10.(mean_sts))
 
         cbar = colorbar()
