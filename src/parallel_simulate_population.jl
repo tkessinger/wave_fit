@@ -10,6 +10,7 @@ using Distributions
 using ArgParse
 using Dates
 using Distributed
+using ClusterManagers
 using DataFrames
 using CSV
 import JSON
@@ -76,7 +77,9 @@ function main(args)
     @add_arg_table s begin
         "--ncpus"
             arg_type=Int64
-            default=max(round(Int,Sys.CPU_THREADS/2), 1)
+            default=1
+        "--slurm"
+            action = :store_true
         "--input"
             default=nothing
         "--output"
@@ -104,7 +107,11 @@ function main(args)
     nsets = length(parsets)
 
     # setup workers assuming directory is manually added to LOAD_PATH
-    addprocs(min(parsed_args["ncpus"], round(Int64, Sys.CPU_THREADS/2)))
+    if parsed_args["slurm"]
+        addprocs(SlurmManager(parsed_args["ncpus"]))
+    else
+        addprocs(parsed_args["ncpus"])
+    end
     extradir = filter((p)->match(r"/", p) !== nothing, LOAD_PATH)[1]
     @everywhere workers() push!(LOAD_PATH, $extradir)
     @everywhere workers() eval(:(using Random))
@@ -207,6 +214,11 @@ function main(args)
         # add to table (must convert dict keys to symbols) and save
         push!(dat, Dict([(Symbol(k), resd[k]) for k in keys(resd)]))
         CSV.write(file, dat)
+    end
+
+    # remove worker processes
+    for wkr in workers()
+        rmprocs(wkr)
     end
 end
 
