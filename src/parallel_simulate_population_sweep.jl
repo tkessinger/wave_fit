@@ -137,7 +137,7 @@ function main(args)
             start = now()
             landscape = Landscape(pard["sigma"],
                                   pard["delta"],
-                                  pard["s"],
+                                  0.0,
                                   pard["beta"],
                                   pard["UL"],
                                   [0.0, 0.0])
@@ -150,11 +150,11 @@ function main(args)
             # initialize mutations and run until valley crossing
             pop.landscape = Landscape(pard["sigma"],
                                       pard["delta"],
-                                      pard["s"],
+                                      0.0,
                                       pard["beta"],
                                       pard["UL"],
-                                      [pard["mu1"], pard["mu2"]])
-            while get_frequencies(pop)[2] < 0.5
+                                      [pard["mu1"], 0.0])
+            while get_frequencies(pop)[1] < 0.5
                 evolve_multi!(pop)
             end
 
