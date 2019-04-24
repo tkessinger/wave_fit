@@ -7,8 +7,8 @@ output: html_notebook
 library(tidyverse)
 library(broom)
 library(jsonlite)
+library(scales)
 library(cowplot)
-library(viridis)
 theme_set(theme_cowplot(font_size=12,font_family = "TeX Gyre Pagella")) 
 
 # Positive values are in inferno, negative in viridis
@@ -44,7 +44,7 @@ tkgrid %>% group_by(K, delta, sigma) %>% summarize(m_crossing_time = mean(crossi
   geom_raster(aes(fill=m_crossing_time)) + 
   scale_x_log10() + scale_y_log10() + annotation_logticks() + add_theme_elements + 
   labs(x = expression(delta), y = "N") +
-  scale_fill_viridis(name = "Crossing time", trans = "log10") +
+  scale_fill_viridis_c(name = "Crossing time", trans = "log10") +
   facet_wrap(~sigma, labeller = label_bquote(sigma==.(sigma)))
 
 tksweep %>% group_by(K, delta, sigma) %>% summarize(m_sweep_time = mean(crossing_time)) %>% mutate(sval = -delta) %>%
@@ -52,7 +52,7 @@ tksweep %>% group_by(K, delta, sigma) %>% summarize(m_sweep_time = mean(crossing
   geom_raster(aes(fill=m_sweep_time)) + 
   scale_x_log10() + scale_y_log10() + annotation_logticks() + add_theme_elements + 
   labs(x = "s", y = "N") +
-  scale_fill_viridis(name = "Sweep time", trans = "log10") +
+  scale_fill_viridis_c(name = "Sweep time", trans = "log10") +
   facet_wrap(~sigma, labeller = label_bquote(sigma==.(sigma)))
 ```
 
@@ -65,7 +65,7 @@ tksweep %>% group_by(K, delta, sigma) %>% summarize(m_sweep_time = mean(crossing
   geom_raster(aes(fill=ratio)) + 
   scale_x_log10() + scale_y_log10() + annotation_logticks() + add_theme_elements + 
   labs(x = "s", y = "N") +
-  scale_fill_viridis(name = "Ratio of sweep times", trans = "log10")
+  scale_fill_viridis_c(name = "Ratio of sweep times", trans = "log10")
 ```
 
 ## Join together mean crossing time and sweep time and create alpha values
