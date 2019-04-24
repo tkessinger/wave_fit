@@ -1,0 +1,103 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(broom)
+library(jsonlite)
+library(cowplot)
+library(viridis)
+theme_set(theme_cowplot(font_size=12,font_family = "TeX Gyre Pagella")) 
+
+# Positive values are in inferno, negative in viridis
+scale_fill_viridis_to_inferno = 
+  function(..., 
+           alpha = 1, values = NULL,
+           midpoint = 0, space = "Lab", na.value = "grey50", guide = "colourbar", aesthetics = "fill") {
+    continuous_scale(
+      aesthetics, "viridis_to_inferno",
+      gradient_n_pal(c(viridis_pal(alpha, 0, 1, 1)(6),viridis_pal(alpha, 0.5, 1, direction=-1, option="B")(6)), 
+                     values, space),
+      na.value = na.value, guide = guide, ...,
+      rescaler = function(x, to = c(0, 1), from = range(x, na.rm = TRUE)) { rescale_mid(x, to, from, midpoint) }
+      )
+}
+
+add_theme_elements = panel_border(colour="black", size=1) + theme(axis.line=element_blank(), aspect.ratio = 1, strip.background = element_blank())
+```
+
+## Read in data and plot crossing times and sweep times
+
+```{r}
+tkgrid = read_csv("grid.csv")
+tksweep = read_csv("grid_sims_sweeps_UL1_ver2.csv")
+```
+
+### Plot crossing time and sweep time
+
+```{r}
+
+tkgrid %>% group_by(K, delta, sigma) %>% summarize(m_crossing_time = mean(crossing_time)) %>% 
+  ggplot(aes(x=delta, y=K)) + 
+  geom_raster(aes(fill=m_crossing_time)) + 
+  scale_x_log10() + scale_y_log10() + annotation_logticks() + add_theme_elements + 
+  labs(x = expression(delta), y = "N") +
+  scale_fill_viridis(name = "Crossing time", trans = "log10") +
+  facet_wrap(~sigma, labeller = label_bquote(sigma==.(sigma)))
+
+tksweep %>% group_by(K, delta, sigma) %>% summarize(m_sweep_time = mean(crossing_time)) %>% mutate(sval = -delta) %>%
+  ggplot(aes(x=sval, y=K)) + 
+  geom_raster(aes(fill=m_sweep_time)) + 
+  scale_x_log10() + scale_y_log10() + annotation_logticks() + add_theme_elements + 
+  labs(x = "s", y = "N") +
+  scale_fill_viridis(name = "Sweep time", trans = "log10") +
+  facet_wrap(~sigma, labeller = label_bquote(sigma==.(sigma)))
+```
+
+### Plot ration of sweep times 
+
+```{r}
+tksweep %>% group_by(K, delta, sigma) %>% summarize(m_sweep_time = mean(crossing_time)) %>% mutate(sval = -delta) %>%
+  select(K,sigma,sval,m_sweep_time) %>% spread(sigma, m_sweep_time) %>% mutate(ratio = `0.05`/`5e-08`) %>%
+  ggplot(aes(x=sval, y=K)) + 
+  geom_raster(aes(fill=ratio)) + 
+  scale_x_log10() + scale_y_log10() + annotation_logticks() + add_theme_elements + 
+  labs(x = "s", y = "N") +
+  scale_fill_viridis(name = "Ratio of sweep times", trans = "log10")
+```
+
+## Join together mean crossing time and sweep time and create alpha values
+
+```{r}
+g = tkgrid %>% group_by(K, delta, sigma) %>% summarize(m_crossing_time = mean(crossing_time)) %>% ungroup() %>% select(K,sigma,m_crossing_time,delta)
+s = tksweep %>% group_by(K, delta, sigma) %>% summarize(m_sweep_time = mean(crossing_time)) %>% ungroup() %>% mutate(sval = -delta) %>% select(K,sval,sigma,m_sweep_time)
+
+gs = full_join(g, s, by=c("K","sigma")) %>% mutate(alpha=m_crossing_time/m_sweep_time)
+```
+
+### Plot log(alpha) as a function of N, delta, and sigma
+
+```{r}
+gs %>%
+  ggplot(aes(x=delta, y=K)) + 
+  geom_raster(aes(fill=log10(alpha))) + 
+  scale_x_log10() + scale_y_log10() + annotation_logticks() + add_theme_elements + 
+  labs(x = expression(delta), y = "N") +
+  scale_fill_viridis_to_inferno(name = "log10(alpha)") +
+  facet_grid(sval~sigma)
+```
+
+### Plot log ratio of alphas
+
+```{r}
+gs %>% select(K,sigma,delta,sval,alpha) %>% spread(sigma, alpha) %>% mutate(logratio = log10(`0.05`/`5e-08`)) %>%
+  ggplot(aes(x=delta, y=K)) + 
+  geom_raster(aes(fill=logratio)) + 
+  scale_x_log10() + scale_y_log10() + annotation_logticks() + add_theme_elements + 
+  labs(x = expression(delta), y = "N") +
+  scale_fill_viridis_to_inferno(name = "log10(alpha_(0.05)/alpha_(5e-08))") +
+  facet_grid(sval~.)
+```
+
