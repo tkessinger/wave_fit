@@ -36,8 +36,8 @@ tenx_format = trans_format("log10", math_format(10^.x))
 ## Read in data and plot crossing times and sweep times
 
 ```{r}
-grid = read_csv("../output/grid/grid.csv")
-sweep = read_csv("../output/grid_sweep/grid_sweep.csv")
+grid = read_csv("../output/grid_s0-1/grid.csv")
+sweep = read_csv("../output/grid_s0-1_sweep/grid_sweep.csv")
 ```
 
 ### Plot crossing time and sweep time
