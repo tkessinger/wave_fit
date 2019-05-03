@@ -1,4 +1,4 @@
-using CSV, PyPlot, Statistics
+using CSV, PyPlot, Statistics, Base.MathConstants
 
 function seqfix(N, fixed_params)
     mu1, mu2, s, delta = fixed_params[1], fixed_params[2], fixed_params[3], fixed_params[4]
@@ -9,12 +9,13 @@ end
 function w5_theory(N, fixed_params)
     mu1, mu2, s, delta = fixed_params[1], fixed_params[2], fixed_params[3], fixed_params[4]
 
-    # eq 25 from Weissman et al (2009)
+    # eq 25 and 22 from Weissman et al (2009)
     p = (-delta + sqrt(delta^2 + 4*mu2*s))/2
+    tau = log(2/(1+delta/sqrt(delta^2+4*mu2*s)))/p
 
     if delta < 0 && - N * delta > 1
         # beneficial single mutant (also from tunnel eq 27)
-        return 1.0/(N*mu1*p)
+        return 1.0/(N*mu1*p) + tau + eulergamma/s
     elseif delta < 2 * sqrt(mu2*s)
         # neutral single mutant
         if N < 1/sqrt(mu2*s)
@@ -22,7 +23,7 @@ function w5_theory(N, fixed_params)
             return 1.0/(N*mu1*(exp(delta)-1)/(exp(N*delta)-1)) + 1.0/(N*mu2*(s+delta))
         elseif N < 1/mu1
             # Tunneling (eq 27)
-            return 1.0/(N*mu1*p)
+            return 1.0/(N*mu1*p) + tau + eulergamma/s
         elseif N < 2*s/(pi*mu1*mu2)
             # Semi-determinstic
             return sqrt(pi/(2.0*N*mu1*mu2*s))
@@ -38,7 +39,7 @@ function w5_theory(N, fixed_params)
         elseif delta < s
             if N < 2*delta^2/(pi*mu1*mu2*s)
                 # Tunneling (eq 27)
-                return 1.0/(N*mu1*p)
+                return 1.0/(N*mu1*p) + tau + eulergamma/s
             elseif N < 2*s/(pi*mu1*mu2)
                 # Semi-determinstic
                 return sqrt(pi/(2.0*N*mu1*mu2*s))
@@ -49,7 +50,7 @@ function w5_theory(N, fixed_params)
         else
             if N < delta/(mu1*mu2)
                 # Tunneling (eq 27)
-                return 1.0/(N*mu1*p)
+                return 1.0/(N*mu1*p) + tau + eulergamma/s
             else
                 # Deterministic
                 return log((s+delta)/(N*mu1*mu2))
@@ -141,5 +142,3 @@ plot_w5(w5a, w5_theory, :K, file="julia_weissman_5a.pdf")
 plot_w5(w5b, w5_theory, :K, file="julia_weissman_5b.pdf")
 plot_w5(w5c, w5_theory, :delta, xlog=false, loc=4, xtic=[-0.01, -0.005, 0.0, 0.005, 0.01], file="julia_weissman_5c.pdf")
 plot_w5(w5d, w5_theory, :mu2, file="julia_weissman_5d.pdf")
-
-# plot_w5(w5b, w5_theory, :K)
