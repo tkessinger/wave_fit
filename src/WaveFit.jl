@@ -14,6 +14,7 @@ export Clone
 export Population, Landscape
 export FitnessClass
 export get_mean_fitness, get_frequencies
+export inject_mutation!, clear_loci!
 
 using Distributions, StatsBase
 
@@ -114,9 +115,9 @@ end
 
 function loci_fitness(class::FitnessClass, pop::Population)
     # returns the sign-epistatic fitness for the focal loci
-    return pop.landscape.s*(class.loci[1])*(class.loci[2]) -
-            pop.landscape.δ*(class.loci[1])*(1 - class.loci[2]) -
-            pop.landscape.δ*(1 - class.loci[1])*(class.loci[2])
+    return pop.landscape.s*(1-(class.loci[1] != 0))*(1-(class.loci[2] != 0)) -
+            pop.landscape.δ*(1 -(class.loci[1] != 0))*(class.loci[2] != 0) -
+            pop.landscape.δ*(class.loci[1] != 0)*(1 - (class.loci[2] != 0))
 end
 
 function calc_fitness!(pop::Population)
@@ -327,7 +328,7 @@ function mutation_multinomial_v2!(pop::Population)
     end
 end
 
-function mutation_multinomial_old!(pop::Population)
+function mutation_multinomial_old!(pop::Population, fixed_first_locus::Bool=false)
     # randomly adds Poisson(UL) mutations to each individual.
 
     mut_dist = Poisson(pop.N*pop.landscape.UL)
@@ -375,7 +376,93 @@ function get_frequencies(pop::Population)
     return freqs
 end
 
-function focal_mutation!(pop::Population)
+function get_mutated_classes(pop::Population, k_id::Int64=1)
+    mutated_classes = FitnessClass[]
+    locus = 1
+    for (k, class) in pop.classes
+        if class.loci[locus] == k_id
+            push!(mutated_classes, class)
+        end
+    end
+    return mutated_classes
+end
+
+function inject_mutation!(pop::Population, k_id::Int64=1)
+    wt_muts = 1
+    wt_classes = FitnessClass[]
+    for (k, class) in pop.classes
+        if class.loci[1] == 0
+            push!(wt_classes, class)
+        end
+    end
+    class_bg_fitness = 0.0
+    mutated_class = []
+    if length(wt_classes) > 0
+        probabilities = weights(1.0*[x.n for x in wt_classes])
+        classes_to_mutate = sample(wt_classes, probabilities, wt_muts)
+        for cl in classes_to_mutate
+            k = key([cl.bg_mutations, k_id, 0])
+            oldclass = get(pop.classes, k, nothing)
+            if oldclass != nothing
+                oldclass.n += 1
+            else
+                tempclass = copy(cl)
+                tempclass.n = 1
+                tempclass.loci = [k_id, 0]
+                pop.classes[k] = tempclass
+                mutated_class = tempclass
+            end
+            calc_fitness!(pop)
+            bg_fitness = pop.classes[k].bg_fitness
+            if pop.var_bg_fitness > 0
+               bg_fitness *= pop.landscape.σ/sqrt(pop.var_bg_fitness)
+            end
+            class_bg_fitness = bg_fitness - pop.mean_fitness
+            cl.n -= 1
+        end
+    end
+    return mutated_class, class_bg_fitness
+end
+
+function clear_loci!(pop::Population)
+
+    classes_to_clear = []
+    for (k, class) in pop.classes
+        if class.loci != [0,0]
+            push!(classes_to_clear, class)
+        end
+    end
+    for cl in classes_to_clear
+        k = key([cl.bg_mutations, 0, 0])
+        oldclass = get(pop.classes, k, nothing)
+        if oldclass != nothing
+            oldclass.n += cl.n
+        else
+            tempclass = copy(cl)
+            tempclass.n = cl.n
+            tempclass.loci = [0, 0]
+            pop.classes[k] = tempclass
+        end
+        cl.n = 0
+    end
+end
+
+function clear_loci!(pop::Population, cl::FitnessClass)
+
+    k = key([cl.bg_mutations, 0, 0])
+    oldclass = get(pop.classes, k, nothing)
+    if oldclass != nothing
+        oldclass.n += cl.n
+    else
+        tempclass = copy(cl)
+        tempclass.n = cl.n
+        tempclass.loci = [0, 0]
+        pop.classes[k] = tempclass
+    end
+    cl.n = 0
+end
+
+function focal_mutation!(pop::Population, fixed_first_locus::Bool=false)
     current_freqs = get_frequencies(pop)
     wild_type = (1.0-current_freqs[1])*pop.N
     if wild_type < 0
@@ -383,8 +470,15 @@ function focal_mutation!(pop::Population)
         println(wild_type)
     end
 
-    wt_dist = Poisson(wild_type*pop.landscape.μ[1])
-    wt_muts = rand(wt_dist)
+    if !(fixed_first_locus)
+        wt_dist = Poisson(wild_type*pop.landscape.μ[1])
+        wt_muts = rand(wt_dist)
+    elseif fixed_first_locus && get_frequencies(pop)[1] == 0
+        wt_muts = 1
+    elseif fixed_first_locus && get_frequencies(pop)[1] > 0
+        wt_muts = 0
+    end
+
     wt_classes = FitnessClass[]
     for (k, class) in pop.classes
         if class.loci[1] == 0
@@ -450,10 +544,10 @@ function evolve!(pop::Population)
     pop.generation += 1
 end
 
-function evolve_multi!(pop::Population)
+function evolve_multi!(pop::Population, fixed_first_locus::Bool=false)
     selection!(pop)
     mutation_multinomial!(pop)
-    focal_mutation!(pop)
+    focal_mutation!(pop, fixed_first_locus)
     pop.generation += 1
 end
 
