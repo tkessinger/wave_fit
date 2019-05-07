@@ -1,6 +1,5 @@
 ---
-title: "R Notebook"
-output: html_notebook
+title: "Plot draft and valley crossing simulation results"
 ---
 
 ```{r message=FALSE}
@@ -44,6 +43,23 @@ scale_color_div_plot = scale_color_viridis_to_inferno #function(...) { scale_col
 add_theme_elements = panel_border(colour="black", size=1) + theme(axis.line=element_blank(), aspect.ratio = 1, strip.background = element_blank())
 
 tenx_format = trans_format("log10", math_format(10^.x))
+
+fancy_scientific <- function(l,...) {
+     # turn in to character string in scientific notation
+     l <- scientific(l,...)
+     # get rid of leading 1.0
+     # quote the part before the exponent to keep all the digits
+     l <- gsub("^(.*)e", "'\\1'e", l)
+     # remove "+" if present
+     l <- gsub("e\\+", "e", l)
+     # get rid of 10^0
+     l <- gsub("e0+$", "", l)
+     # turn the 'e+' into plotmath format
+     l <- gsub("'1'e", "10^", l)
+     l <- gsub("e", "%*%10^", l)
+     # return this as an expression
+     parse(text=l)
+}
 ```
 
 ## Read in data and plot crossing times and sweep times
@@ -85,11 +101,11 @@ sweep %>% group_by(K, delta, sigma) %>% summarize(m_sweep_time = mean(crossing_t
 
 p.ctime = grid %>% filter(s==0.1) %>% group_by(K, delta, sigma, s) %>% summarize(m_crossing_time = log10(mean(crossing_time))) %>% 
   ggplot(aes(x=delta, y=K)) + 
-  geom_raster(aes(fill=m_crossing_time)) + 
-  scale_x_log10() + scale_y_log10() + add_theme_elements + 
+  geom_tile(aes(fill=m_crossing_time, color=m_crossing_time)) + 
+  scale_x_log10(labels=tenx_format) + scale_y_log10(labels=tenx_format) + add_theme_elements + 
   labs(x = expression(delta), y = expression(italic(N))) +
   scale_fill_pos_plot(name = expression(log[10](tau))) + scale_color_pos_plot(guide=FALSE) +
-  facet_grid(.~sigma, labeller = label_bquote(cols=sigma==.(sigma)))
+  facet_grid(.~sigma, labeller = label_bquote(cols=sigma==.(fancy_scientific(sigma)[[1]])))
 p.ctime
 
 ggsave("../output/log_tau_s0-1.pdf", p.ctime, width=6, units="in")
@@ -131,9 +147,9 @@ p.logalpha = gs %>% filter(s==0.1, sval==0.1) %>%
   ggplot(aes(x=delta, y=K)) + 
   geom_tile(aes(fill=log10(alpha), color=log10(alpha))) + 
   scale_x_log10(labels=tenx_format) + scale_y_log10(labels=tenx_format) + add_theme_elements + 
-  labs(x = expression(italic(N)), y = expression(delta)) +
+  labs(x = expression(delta), y = expression(italic(N))) +
   scale_fill_pos_plot(limits = c(0, 3.2), name = expression(log[10](italic(alpha[sigma])))) + scale_color_pos_plot(guide=FALSE) +
-  facet_grid(.~sigma, labeller = label_bquote(cols=sigma==.(sigma)))
+  facet_grid(.~sigma, labeller = label_bquote(cols=sigma==.(fancy_scientific(sigma)[[1]])))
 p.logalpha
 
 ggsave("../output/log_alpha_s0-1.pdf", p.logalpha, width=6, units="in")
@@ -146,12 +162,13 @@ p.logratio = gs %>% filter(s==0.1, sval!=0.001) %>%
   select(K,sigma,delta,sval,alpha) %>% spread(sigma, alpha) %>% 
   mutate(`0.05` = log10(`0.05`/`5e-08`), `0.5` = log10(`0.5`/`5e-08`)) %>% 
   gather(`0.05`, `0.5`, key = sigma, value = ratio) %>%
+  mutate(sigma = as.numeric(sigma)) %>%
   ggplot(aes(x=delta, y=K)) + 
   geom_tile(aes(fill=ratio, color=ratio)) + 
   scale_x_log10(labels=tenx_format) + scale_y_log10(labels=tenx_format) + add_theme_elements + 
   labs(x = expression(delta), y = expression(italic(N))) +
-  scale_fill_div_plot(name = expression(log[10](italic(alpha[sigma])/italic(alpha[5e-08])))) + scale_color_div_plot(guide=FALSE) +
-  facet_grid(sigma~sval, labeller = label_bquote(rows=sigma==.(sigma), cols=italic(s)[sweep]==.(sval)))
+  scale_fill_div_plot(name = expression(log[10](italic(alpha[sigma])/italic(alpha[5 %*% 10^-8])))) + scale_color_div_plot(guide=FALSE) +
+  facet_grid(sigma~sval, labeller = label_bquote(rows=sigma==.(fancy_scientific(sigma)[[1]]), cols=italic(s)[sweep]==.(fancy_scientific(sval)[[1]])))
 p.logratio
 
 ggsave("../output/log_ratio_s0-1.pdf", p.logratio, width=6, units="in")
@@ -169,7 +186,7 @@ p.ss = ss %>%
   scale_x_log10(labels=tenx_format) + scale_y_log10(labels=tenx_format) + add_theme_elements + 
   labs(x = expression(italic(s)), y = expression(italic(sigma))) +
   scale_fill_div_plot(name = expression(log[10](tau*mu[1]))) + scale_color_div_plot(guide=FALSE) +
-  facet_grid(.~mu1, labeller = label_bquote(cols=italic(mu[1])==.(mu1)))
+  facet_grid(.~mu1, labeller = label_bquote(cols=italic(mu[1])==.(fancy_scientific(mu1)[[1]])))
 p.ss
 
 ggsave("../output/log_taumu.pdf", p.ss, width=6, units="in")
