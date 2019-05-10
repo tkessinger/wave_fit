@@ -1,8 +1,10 @@
 using CSV, PyPlot, Statistics
 
 ct = CSV.read("output/parallel_sims/var_sigma_delta.csv")
+#ct = [ct;CSV.read("output/parallel_sims/var_sigma_delta_2.csv")]
 
-sigma_tags = [L"$5 \times 10^{-8}$",L"$5 \times 10^{-2}$"]
+
+#sigma_tags = [L"$5 \times 10^{-8}$",L"$5 \times 10^{-2}$"]
 
 fig = figure()
 ax = []
@@ -26,6 +28,9 @@ end
 xscale("log")
 yscale("log")
 ylabel(L"\tau")
+xlabel(L"\delta")
 legend(loc=2)
+tight_layout()
 display(fig)
+savefig("julia_sigma_delta.pdf")
 #xlabel(indep_var_string)
