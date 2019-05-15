@@ -1,0 +1,123 @@
+\documentclass[10pt]{revtex4}
+%\documentclass[margin=3pt]{standalone}
+
+\usepackage{tikz}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{mathtools}
+
+\newcommand{\shrug}[1][]{%
+\begin{tikzpicture}[baseline,x=0.8\ht\strutbox,y=0.8\ht\strutbox,line width=0.125ex,#1]
+\def\arm{(-2.5,0.95) to (-2,0.95) (-1.9,1) to (-1.5,0) (-1.35,0) to (-0.8,0)};
+\draw \arm;
+\draw[xscale=-1] \arm;
+\def\headpart{(0.6,0) arc[start angle=-40, end angle=40,x radius=0.6,y radius=0.8]};
+\draw \headpart;
+\draw[xscale=-1] \headpart;
+\def\eye{(-0.075,0.15) .. controls (0.02,0) .. (0.075,-0.15)};
+\draw[shift={(-0.3,0.8)}] \eye;
+\draw[shift={(0,0.85)}] \eye;
+% draw mouth
+\draw (-0.1,0.2) to [out=15,in=-100] (0.4,0.95); 
+\end{tikzpicture}}
+
+
+\begin{document}
+
+We have some options for a birth-death process which it might be useful to consider.
+Following Kendall (1948), let $\lambda$ be the birth rate and $\mu$ be the death rate.
+The ``forward" equation for the probability $P_n(t)$ that there are $n$ individuals at time $t$ is
+\begin{equation}
+\partial_t P_n(t) = (n+1)\mu P_{n+1}(t) + (n-1)\lambda P_{n-1}(t) - n(\lambda+\mu)P_n(t).
+\end{equation}
+The generating function
+\begin{equation}
+\varphi(z,t) = \sum_{n = -\infty}^\infty P_n(t)z^n
+\end{equation}
+satisfies the PDE
+\begin{equation}
+\partial_t \varphi = (z-1)(\lambda z-\mu)\partial_z \varphi .
+\end{equation}
+The characteristic equation is given by
+\begin{equation}
+\frac{dz}{dt} = -\mu + (\lambda+\mu) z - \lambda z^2 .
+\end{equation}
+This is all old hat so far and can be neatly compared with, e.g., Desai and Fisher (2007) or the treatment in Allen (2004).
+To study tunneling, one would be interested not in $P_n(t)$ but in the behavior of $P_{n,w}(t)$, the probability that there are $n$ individuals and a total weight $w$ at time $t$. To do this, one would have to introduce the new generating function 
+\begin{equation}
+\psi(z,y,t) = \sum_{n = 0}^\infty \sum_{w = 0}^\infty P_{n,w}(t) z^n y^w,
+\end{equation}
+which satisfies the PDE
+\begin{equation}
+\partial_t \psi = \left[ \lambda y z^2 - (\lambda + \mu)z + \mu \right] \partial_z \psi,
+\end{equation}
+with the boundary condition $\psi(z, y, 0) = zy$.
+This is hard to solve, and it looks like nobody has done it in the general case.
+Kendall (1948) tackles it only in the case of constant $\lambda$ and $\mu$ (it looks very similar to Dan's analysis, except that Dan let $w$ be continuous rather than discrete), and he briefly considers the ``Arley process", in which $\lambda$ is constant and $\mu$ is some constant multiple of $t$ (it seems this is a useful model for studying the behavior of cosmic rays).
+Elsewhere the constant $\lambda$ and $\mu$ model is referred to as a ``Feller-Arley" process, which is nice, because it would just be too easy if people were vaguely consistent in their terminology. \shrug
+
+Anyway, a few useful quantities generalize to the time dependent case, which Kendall (1948) obtains by using the cumulant generating function
+\begin{equation}
+K(u,v,t) = \log \psi(e^u, e^v, t)
+\end{equation}
+and matching terms in the resultant differential equations.
+Let
+\begin{equation}
+\rho (t) = \int_0^t [\mu(\tau) - \lambda(\tau)] d\tau .
+\end{equation}
+The time dependent extinction probability is
+\begin{equation}
+P_0(t) = \frac{\int_0^t e^{\rho(\tau)} \mu(\tau) d\tau}{1 + \int_0^t e^{\rho(\tau)} \mu(\tau) d\tau}.
+\end{equation}
+(Sanity check: if the integral blows up, which it will if $\rho$ grows, the extinction probability is $1$; this is just a fancy way of saying $\mu(t) > \lambda(t)$ at long $t$.)
+The distribution of extinction times $T$ will be
+\begin{equation}
+P(T) = \frac{e^{\rho(T)} \mu(T)}{\left(1 + \int_0^T e^{\rho(\tau)} \mu(\tau) d\tau\right)^2},
+\end{equation}
+which can be integrated to obtain the mean extinction time, and the mean cumulative population (``weight") $w$ at time $t$ will be
+\begin{equation}
+\mathbb{E}[w(t)] = 1 + \int^t_0 e^{-\rho (\tau)} \lambda(\tau) d\tau .
+\end{equation}
+We will probably want to send $t \to \infty$.
+
+In principle these should be sufficient to give us an idea of how tunneling works in the case where the growth rate is set to $x - vt$.
+Immediately we notice that, while the integral factor $\rho$ depends only on the difference between $\lambda$ and $\mu$, several other features of the weight depend on the exact form of $\lambda$ and $\mu$.
+Past analyses such as Desai and Fisher (2007) have assigned $\mu$ the constant value of $1$, so that in effect time is ``scaled by" the death rate; Neher and Shraiman (2011) stuck the $-vt$ term in $\lambda$ and similarly set $\mu = 1$.
+But we might well wish to stick the $-vt$ term in $\mu$, so that the death rate increases as time goes on (and to avoid the ``absurd" conclusion that the birth rate becomes negative).
+We would have to be careful about what this implies for the ``time scale" of the process and how it compares to other population genetic models.
+Whichever choice we make, we can immediately solve for
+\begin{equation}
+\rho(t) = \int_0^t (-x + v\tau) d\tau = - xt + vt^2/2.
+\end{equation}
+The astute reader will note that this leaves us to deal with an ugly Gaussian integral, which... sucks, but maybe we can get past it.
+Suppose we choose $\lambda(t) = 1 + x$, $\mu(t) = 1 + vt$. Then
+\begin{equation}
+\mathbb{E}[T] = \int_0^\infty \left[ \frac{e^{\rho(T)} \mu(T) T}{\left(1 + \int_0^T e^{\rho(\tau)} \mu(\tau) d\tau\right)^2} \right]dT.
+\end{equation}
+We might be able to solve this. Let's do the integral in the denominator first:
+\begin{equation}
+\int_0^T e^{\rho(\tau)} \mu(\tau) d\tau = \int_0^T e^{- x\tau + v\tau^2/2} (1 + v\tau) d\tau = e^{-x} \left[\sqrt{\frac{\pi}{2v}} \mathrm{erfi} \left(\sqrt{\frac{vT^2}{2}}\right) + e^{vT^2/2} - 1\right].
+\end{equation}
+This looks pretty terrible, but we might be able to argue that it's bounded by something, or maybe it neatly cancels out with something.
+The fact that $T$ is the bound of the integral in the denominator \emph{and} the variable of integration in the numerator means we can't simply send it to $\infty$ prematurely.
+($\mathrm{erfi}(x) = -i \mathrm{erf}(ix)$ is the poorly named ``imaginary" error function.)
+By inspection, I'm not even sure which expression in the result is dominant. Probably the ``inverse" Gaussian, but I'd have to check and see what $\mathrm{erfi}$ looks like.
+We could certainly try to evaluate $\mathbb{E}[T]$ this way, but it seems like a fool's errand.
+
+The mean weight (after sending $t \to \infty$) is
+\begin{equation}
+\mathbb{E}[w] = 1 + \int_0^\infty e^{x\tau-v\tau^2/2}(1+x)d\tau = 1 + \sqrt{\frac{\pi}{2v}}(1+x)e^{x^2/2v}\left[\mathrm{erf}(x/\sqrt{2v}) + 1\right].
+\end{equation}
+The second term (with the $\sqrt{\pi/2v}$ prefactor) looks like it's going to be dominant, and note that $\mathrm{erf}$ is bounded by $1$ anyway.
+We might be able to tame some of these integrals by looking at asymptotics or doing a power series analysis.
+Weirdly, choosing $\lambda(t) = 1 + x - vt$ instead causes the Wolfram integrator to freak out, which is odd, because the $1$ term is just an error function and the $x - vt$ term seems like it's just integration by parts. \shrug
+
+Alternately, we know the ``mean" behavior of these bubbles for large $n$, which might be helpful ($n$ will, on average, be proportional to $e^{xt-vt^2/2}$, and $w$ will simply be the area under this curve, which unfortunately means we'll still have to deal with an error function, so maybe this isn't much more helpful after all).
+This won't give us the bubble size distribution at all, but it will give us a sense of how long bubbles last, on average.
+I'm actually not sure whether the distribution is really needed at all; could Dan have gotten the tunneling probability simply by considering the ``mean" behavior of transient bubbles?
+(\ldots I guess not, since their ``mean" size will be decaying to zero using this argument, as their growth rate is always negative.)
+In Desai and Fisher (2007), this trick of taking the mean behavior didn't work because lineages that establish are likely to have grown faster than an average lineage; but here, establishment is \emph{de facto} impossible (the process is ``transient", meaning extinction is assured).
+
+In short, there might still be hope.
+\end{document}
