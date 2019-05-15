@@ -13,7 +13,7 @@ export focal_mutation!
 export Clone
 export Population, Landscape
 export FitnessClass
-export get_mean_fitness, get_frequencies
+export get_mean_fitness, get_frequencies, get_mutated_classes, get_all_mutated_classes
 export inject_mutation!, clear_loci!
 
 using Distributions, StatsBase
@@ -376,11 +376,22 @@ function get_frequencies(pop::Population)
     return freqs
 end
 
-function get_mutated_classes(pop::Population, k_id::Int64=1)
+function get_mutated_classes(pop::Population, k_id::Int64)
     mutated_classes = FitnessClass[]
     locus = 1
     for (k, class) in pop.classes
         if class.loci[locus] == k_id
+            push!(mutated_classes, class)
+        end
+    end
+    return mutated_classes
+end
+
+function get_all_mutated_classes(pop::Population)
+    mutated_classes = FitnessClass[]
+    locus = 1
+    for (k, class) in pop.classes
+        if class.loci[locus] != 0
             push!(mutated_classes, class)
         end
     end
@@ -424,11 +435,10 @@ function inject_mutation!(pop::Population, k_id::Int64=1)
     return mutated_class, class_bg_fitness
 end
 
-function clear_loci!(pop::Population)
-
+function clear_loci!(pop::Population, k_id::Int64=1)
     classes_to_clear = []
     for (k, class) in pop.classes
-        if class.loci != [0,0]
+        if class.loci[1] == k_id
             push!(classes_to_clear, class)
         end
     end
