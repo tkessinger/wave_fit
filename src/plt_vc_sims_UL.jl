@@ -8,7 +8,7 @@
 
 #ENV["PLOTS_USE_ATOM_PLOTPANE"] = "false"
 
-using PyPlot, JLD, Glob, WaveFit, LaTeXStrings
+using PyPlot, JLD, Glob, LaTeXStrings, Statistics
 
 date = "20190109"
 
@@ -45,21 +45,19 @@ date = "20190109"
         end
     end
 
-figure()
 for (si, sigma) in enumerate(sigmalist)
+    figure()
     for (ui, UL) in enumerate(UL_list)
     ax = errorbar(Nlist, [mean(x) for x in tau_grid[si,ui,:]],
         yerr = [std(x) for x in tau_grid[si,ui,:]],
-        label = latexstring("\$UL = $UL, \\sigma = 10^{$(round(Int64,log10(sigma)))}\$"))
+        label = L"$UL = $" * string(UL))
     end
+    legend(loc=2)
+    title(L"$\sigma = 10^{" * string(round(Int64,log10(sigma))) * L"}\$")
+    ylabel(L"$\tau$")
+    xlabel(L"$N$")
+    xscale("log")
+    yscale("log")
+    ylim([1e2,1e7])
+    show()
 end
-
-ax = axes()
-legend(loc=2)
-ylabel(L"$\tau$")
-xlabel(L"$\sigma$")
-xscale("log")
-yscale("log")
-ylim([1e2,1e7])
-show()
-#savefig("neut_tunnel.pdf")

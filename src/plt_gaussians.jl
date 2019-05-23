@@ -13,7 +13,8 @@ using PyPlot, JLD, Glob, WaveFit, LaTeXStrings
 function vec2array(v)
     r = length(v)
     c = length(v[1])
-    a = Array{Int64}(r,c)
+    #a = Array{Int64}(r,c)
+    a = zeros(r,c)
     for i in 1:r, j in 1:c
         a[i,j] = v[i][j]
     end
@@ -49,6 +50,7 @@ date = "20190115"
     fitness_means = Dict()
     fitness_devs = Dict()
     dist_lengths = Dict()
+    fixed_dist_lengths = Dict()
 
     for file in files
         f = load(file)
@@ -61,7 +63,9 @@ date = "20190115"
             means_and_vars = [get_mean_and_std(x) for x in transformed_dists]
             [push!(fitness_means[(sigma, UL, N)], x[1]) for x in means_and_vars]
             [push!(fitness_devs[(sigma, UL, N)], x[2]) for x in means_and_vars]
-            [push!(dist_lengths[(sigma, UL, N)], length(x)) for x in transformed_dists]
+            #[push!(dist_lengths[(sigma, UL, N)], length(x)) for x in transformed_dists]
+            push!(dist_lengths[(sigma, UL, N)], [length(x) for x in transformed_dists])
+
         else
             fitness_dists[(sigma, UL, N)] = []
             fitness_means[(sigma, UL, N)] = []
@@ -72,13 +76,23 @@ date = "20190115"
             means_and_vars = [get_mean_and_std(x) for x in transformed_dists]
             [push!(fitness_means[(sigma, UL, N)], x[1]) for x in means_and_vars]
             [push!(fitness_devs[(sigma, UL, N)], x[2]) for x in means_and_vars]
-            [push!(dist_lengths[(sigma, UL, N)], length(x)) for x in transformed_dists]
+            #[push!(dist_lengths[(sigma, UL, N)], length(x)) for x in transformed_dists]
+            push!(dist_lengths[(sigma, UL, N)], [length(x) for x in transformed_dists])
         end
         println("$file, $sigma, $UL, $N, $(length(f["pop_samples"]))")#", $(mean(f["pop_samples"]))")
     end
     sigmalist = sort(unique([x[1] for x in keys(fitness_dists)]))
     UL_list = sort(unique([x[2] for x in keys(fitness_dists)]))
     Nlist = sort(unique([x[3] for x in keys(fitness_dists)]))
+
+    for (sigma, UL, N) in keys(fitness_dists)
+        fixed_dist_lengths[(sigma, UL, N)] = []
+        min_length = minimum([length(x) for x in dist_lengths[(sigma, UL, N)]])
+        for i in 1:min_length
+            tmp_lengths = dist_lengths[(sigma, UL, N)]
+            push!(fixed_dist_lengths[(sigma, UL, N)], mean([tmp_lengths[1][i], tmp_lengths[2][i], tmp_lengths[3][i]]))
+        end
+    end
 
     #tau_grid = zeros(length(sigmalist), length(UL_list), length(Nlist))
 
@@ -108,13 +122,22 @@ date = "20190115"
 
     for (si, sigma) in enumerate(sigmalist)
         for (ui, UL) in enumerate(UL_list)
-            figure()
-            for (Ni, N) in enumerate(Nlist)
-                if (sigma, UL, N) in keys(fitness_dists)
-                    title(latexstring("\$UL = $UL, \\sigma = 5 \\times 10^{$(round(Int64,log10(sigma/5)))}\$"))
-                    plot(dist_lengths[(sigma, UL, N)], label=latexstring("\$N = 10^$(round(Int64,log10(N)))}\$"))
+            if UL == 1.0
+                figure()
+                for (Ni, N) in enumerate(Nlist)
+                    if (sigma, UL, N) in keys(fitness_dists)
+                        title(latexstring("\$UL = $UL, \\sigma = 5 \\times 10^{$(round(Int64,log10(sigma/5)))}\$"))
+                        plot(collect(1:length(fixed_dist_lengths[(sigma, UL, N)]))*.01, fixed_dist_lengths[(sigma, UL, N)], label=latexstring("\$N = 10^$(round(Int64,log10(N)))}\$"))
+                    end
                 end
-                legend(loc=1)
+                ylabel("number of classes")
+                xlabel("generations/N")
+                legend(loc=4)
+                tight_layout()
+                current_ylim = ylim()
+                ylim([0, current_ylim[2]])
+                vlines(.1, 0, current_ylim[2],linestyle = "--")
+                savefig("equilibration_$(sigma)_$(UL).pdf")
             end
         end
     end
@@ -151,8 +174,8 @@ date = "20190115"
     tmp_means = fitness_means[collect(keys(fitness_dists))[1]]
     tmp_devs = fitness_devs[collect(keys(fitness_dists))[1]]
     i = 1
-    sigma = collect(keys(fitness_dists))[1][1]
-    dist = normalize_and_sort(tmp_dists[i], sigma, tmp_means[i], tmp_devs[i])
+    #sigma = collect(keys(fitness_dists))[1][1]
+    #dist = normalize_and_sort(tmp_dists[i], sigma, tmp_means[i], tmp_devs[i])
 
 
 # figure()

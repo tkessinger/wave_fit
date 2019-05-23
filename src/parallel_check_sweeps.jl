@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 
-#SBATCH --ntasks=30
+#SBATCH --ntasks=20
 #SBATCH --cpus-per-task=1
 
 ## simulate_population.jl
@@ -134,7 +134,7 @@ function main(args)
             start = now()
             landscape = Landscape(pard["sigma"],
                                   pard["delta"],
-                                  pard["s"],
+                                  0.0,
                                   pard["beta"],
                                   pard["UL"],
                                   [0.0, 0.0])
@@ -147,15 +147,35 @@ function main(args)
             # initialize mutations and run until valley crossing
             pop.landscape = Landscape(pard["sigma"],
                                       pard["delta"],
-                                      pard["s"],
+                                      0.0,
                                       pard["beta"],
                                       pard["UL"],
-                                      [pard["mu1"], pard["mu2"]])
-            while get_frequencies(pop)[2] < 0.5
+                                      [pard["mu1"], 0.0])
+            established = false
+            in_play = false
+
+            appearance_time = 0
+            establishment_time = 0
+
+            while get_frequencies(pop)[1] < 0.5
+                if get_frequencies(pop)[1] > 0.0 && in_play == false
+                    in_play = true
+                    appearance_time = pop.generation - burn_time
+                end
+                if get_frequencies(pop)[1] > -1.0/(pard["K"]*pard["delta"]) && established == false
+                    established = true
+                    establishment_time = pop.generation - burn_time
+                end
+                if get_frequencies(pop)[1] == 0
+                    established = false
+                    in_play = false
+                end
                 evolve_multi!(pop)
             end
 
             # save crossing time
+            pard["appearance_time"] = appearance_time
+            pard["establishment_time"] = establishment_time
             pard["crossing_time"] = pop.generation-burn_time
 
             # output elapsed time
@@ -198,7 +218,7 @@ function main(args)
     output = parsed_args["output"]
     file = occursin(r"\.csv$", output) ? output : output*".csv"
     cols = push!(sort(collect(keys(pars))),
-                 ["rep", "crossing_time", "seed1", "seed2", "seed3", "seed4"]...)
+                 ["rep", "appearance_time", "establishment_time", "crossing_time", "seed1", "seed2", "seed3", "seed4"]...)
     dat = DataFrame(Dict([(c, Any[]) for c in cols]))
 
     # grab results and output to CSV

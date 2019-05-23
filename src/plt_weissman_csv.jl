@@ -43,7 +43,11 @@ using CSV, PyPlot, Statistics
 # display(fig)
 #xlabel(indep_var_string)
 
-using CSV, PyPlot, Statistics, Base.MathConstants
+using CSV, PyPlot, Statistics, Base.MathConstants, PyCall
+
+rcParams = PyDict(matplotlib["rcParams"])
+rcParams["font.size"] = 15
+rcParams["lines.linewidth"] = 2
 
 function seqfix(N, fixed_params)
     mu1, mu2, s, delta = fixed_params[1], fixed_params[2], fixed_params[3], fixed_params[4]
@@ -109,7 +113,7 @@ function plot_w5(data, theory, var; figlabel = "", xlog = true, ylog = true, yma
     fig = figure()
     ax = []
     #sigma_tags = [L"0.5", L"0.1", L"0.05", L"0.01", L"10^{-8}"]
-    sigma_tags = [L"5 \times 10^{-1}", L"1 \times 10^{-1}", L"5 \times 10^{-2}", L"1 \times 10^{-2}", L"10^{-8}"]
+    sigma_tags = [L"5 \times 10^{-1}", L"1 \times 10^{-1}", L"5 \times 10^{-2}", L"1 \times 10^{-2}", L"1 \times 10^{-8}"]
     for (si, sigma) in enumerate(sort(unique(data[:sigma]), rev=true))
         ds = data[data[:sigma].==sigma,:]
         vs = sort(unique(ds[var]))
@@ -173,7 +177,7 @@ function plot_w5(data, theory, var; figlabel = "", xlog = true, ylog = true, yma
         ylim(0, ymax)
     end
 
-    fig.text(0.05,.95, figlabel, size=20, weight="bold")
+    fig.text(0.05,.95, figlabel, size=20)#, weight="bold")
 
     xlabel(indep_var_string)
     ylabel(L"\tau")
@@ -193,7 +197,7 @@ w5b = CSV.read("output/parallel_sims/5b_2019_03/weissman5b.csv")
 w5c = CSV.read("output/parallel_sims/5c_2019_04/weissman5c.csv")
 w5d = CSV.read("output/parallel_sims/5d_2019_04/weissman5d.csv")
 
-plot_w5(w5a, w5_theory, :K, file="julia_weissman_5a.pdf", figlabel="a", show_legend = true)
-plot_w5(w5b, w5_theory, :K, figlabel = "b", file="julia_weissman_5b.pdf")
-plot_w5(w5c, w5_theory, :delta, figlabel = "c", xlog=false, loc=4, xtic=[-0.01, -0.005, 0.0, 0.005, 0.01], file="julia_weissman_5c.pdf")
-plot_w5(w5d, w5_theory, :mu2, figlabel = "d", file="julia_weissman_5d.pdf")
+plot_w5(w5a, w5_theory, :K, file="julia_weissman_5a.pdf", figlabel="(a)", show_legend = true)
+plot_w5(w5b, w5_theory, :K, figlabel = "(b)", file="julia_weissman_5b.pdf")
+plot_w5(w5c, w5_theory, :delta, figlabel = "(c)", xlog=false, loc=4, xtic=[-0.01, -0.005, 0.0, 0.005, 0.01], file="julia_weissman_5c.pdf")
+plot_w5(w5d, w5_theory, :mu2, figlabel = "(d)", file="julia_weissman_5d.pdf")

@@ -52,7 +52,7 @@ date = "20181210"
 
 
     fig, ax1 = subplots(1,1)
-    imshow(max.(0,log10(tau_grid[1,:,:])),vmin=0,vmax=6)
+    imshow(max.(0,log10.(tau_grid[1,:,:])),vmin=0,vmax=6)
     cbar = colorbar()
     ax1[:set_xticklabels](xticklabels)
     ax1[:set_yticklabels](yticklabels)
@@ -60,7 +60,7 @@ date = "20181210"
     title(L"$\sigma = 10^{-6}$")
 
     fig, ax2 = subplots(1,1)
-    imshow(max.(0,log10(tau_grid[2,:,:])),vmin=0,vmax=6)
+    imshow(max.(0,log10.(tau_grid[2,:,:])),vmin=0,vmax=6)
     cbar = colorbar()
     ax2[:set_xticklabels](xticklabels)
     ax2[:set_yticklabels](yticklabels)

@@ -21,9 +21,8 @@
 #using Revise
 using WaveFit
 using Distributions
-using Stats, Dates
 using ArgParse, JLD2
-
+using Dates, Random
 
 function main(args)
 
@@ -37,7 +36,7 @@ function main(args)
             default = "test"
         "--K"
             arg_type=Float64
-            default=1e5
+            default=1e4
         "--sigma"
             arg_type=Float64
             default=1e-5
@@ -70,7 +69,7 @@ function main(args)
             default = "test"
     end
 
-    seed = Base.Random.GLOBAL_RNG.seed
+    seed = Random.GLOBAL_RNG.seed
 
     parsed_args = parse_args(args, s)
 
@@ -85,29 +84,34 @@ function main(args)
     println("random seed: $seed")
     println("-----------")
 
-    flush(STDOUT)
+    flush(stdout)
 
     K = round(Int64, K)
     burn_time = round(Int64, K * burn_factor)
     landscape = Landscape(sigma, delta, s, beta, UL, [0.0, 0.0])
-    pop = Population(K,landscape)
 
     crossing_times = []
 
     df = DateFormat("yyyy.mm.dd HH:MM:SS")
     println(Dates.format(now(), df), " | start")
     for i in 1:num_crossings
-        pop = Population(K,landscape)
+        pop = Population(K, landscape)
+
+        # burn in
+        for i in 1:burn_time
+            evolve_multi!(pop)
+        end
+
+        # initialize mutations and run until valley crossing
+        pop.landscape = Landscape(sigma, delta, s, beta, UL, [mu1, mu2])
         while get_frequencies(pop)[2] < 0.5
             evolve_multi!(pop)
-            if pop.generation == burn_time
-                pop.landscape = Landscape(sigma, delta, s, beta, UL, [mu1, mu2])
-            end
         end
+
         push!(crossing_times, pop.generation-burn_time)
         println(Dates.format(now(), df), " | crossing time: ", pop.generation-burn_time)
-        flush(STDOUT)
-        file = ismatch(r"\.jld2", outfile) ? outfile : outfile*".jld2"
+        flush(stdout)
+        file = occursin(r"\.jld2", outfile) ? outfile : outfile*".jld2"
         @save "output/vc_sims/$file" crossing_times parsed_args seed
     end
 end

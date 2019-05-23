@@ -8,7 +8,7 @@
 
 #ENV["PLOTS_USE_ATOM_PLOTPANE"] = "false"
 
-using PyPlot, JLD, Glob, WaveFit, LaTeXStrings
+using PyPlot, JLD, Glob, WaveFit, LaTeXStrings, StatsBase
 
 date = "20181219"
 
@@ -51,7 +51,7 @@ for (si, sigma) in enumerate(sigmalist)
         if abs(beta) == 0.1
         ax = errorbar(Nlist, [mean(x) for x in tau_grid[si,bi,:]],
             yerr = [std(x) for x in tau_grid[si,bi,:]],
-            label = latexstring("\$ \\beta = $beta, \\sigma = 10\^{$(round(Int64,log10(sigma)))} \$"))
+            label = latexstring("\$ \\beta = $beta, \\sigma = 10^{$(round(Int64,log10(sigma)))} \$"))
         end
     end
 end
@@ -63,5 +63,6 @@ xlabel(L"$N$")
 xscale("log")
 yscale("log")
 ylim([1e2,1e7])
+tight_layout()
 show()
 #savefig("neut_tunnel.pdf")
