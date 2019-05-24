@@ -46,7 +46,7 @@ using CSV, PyPlot, Statistics
 using CSV, PyPlot, Statistics, Base.MathConstants, PyCall
 
 rcParams = PyDict(matplotlib["rcParams"])
-rcParams["font.size"] = 15
+rcParams["font.size"] = 14
 rcParams["lines.linewidth"] = 2
 
 function seqfix(N, fixed_params)
@@ -177,12 +177,12 @@ function plot_w5(data, theory, var; figlabel = "", xlog = true, ylog = true, yma
         ylim(0, ymax)
     end
 
-    fig.text(0.05,.95, figlabel, size=20)#, weight="bold")
+    fig.text(0.07,.95, figlabel, size=18)#, weight="bold")
 
     xlabel(indep_var_string)
     ylabel(L"\tau")
     if show_legend == true
-        legend(loc=loc)
+        legend(loc=loc, fontsize=12)
     end
     tight_layout()
     if file == nothing
@@ -192,10 +192,10 @@ function plot_w5(data, theory, var; figlabel = "", xlog = true, ylog = true, yma
     end
 end
 
-w5a = CSV.read("output/parallel_sims/5a_2019_03/weissman5a.csv")
-w5b = CSV.read("output/parallel_sims/5b_2019_03/weissman5b.csv")
-w5c = CSV.read("output/parallel_sims/5c_2019_04/weissman5c.csv")
-w5d = CSV.read("output/parallel_sims/5d_2019_04/weissman5d.csv")
+w5a = CSV.read("5a_2019_03/weissman5a.csv")
+w5b = CSV.read("5b_2019_03/weissman5b.csv")
+w5c = CSV.read("5c_2019_04/weissman5c.csv")
+w5d = CSV.read("5d_2019_04/weissman5d.csv")
 
 plot_w5(w5a, w5_theory, :K, file="julia_weissman_5a.pdf", figlabel="(a)", show_legend = true)
 plot_w5(w5b, w5_theory, :K, figlabel = "(b)", file="julia_weissman_5b.pdf")
