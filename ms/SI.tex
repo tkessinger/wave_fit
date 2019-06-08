@@ -1,0 +1,54 @@
+\documentclass[10pt]{revtex4}
+%\documentclass{article}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{mathtools}
+\usepackage{subcaption}
+\captionsetup{compatibility=false}
+
+\title{Supplemental information for ``Genetic draft and valley crossing"}
+%\author[$\ast$]{Taylor Kessinger}
+%\author[$\ast$,1]{Jeremy Van Cleve}
+%\affil[$\ast$]{Department of Biology, University of Kentucky}
+
+
+\begin{document}
+
+\maketitle
+
+\begin{figure}[h]
+\begin{subfigure}[d]{0.48\textwidth}
+\includegraphics[width=\textwidth]{Figures/{var_UL_5.0e-8}.pdf}
+\end{subfigure}
+\begin{subfigure}[d]{0.48\textwidth}
+\includegraphics[width=\textwidth]{Figures/{var_UL_0.01}.pdf}
+\end{subfigure}
+\begin{subfigure}[d]{0.48\textwidth}
+\includegraphics[width=\textwidth]{Figures/{var_UL_0.05}.pdf}
+\end{subfigure}
+\begin{subfigure}[d]{0.48\textwidth}
+\includegraphics[width=\textwidth]{Figures/{var_UL_0.1}.pdf}
+\end{subfigure}
+\caption{Recreation of figure 5b from \citet{weissman_2009} with varying $\sigma$ and $UL$. Varying $UL$ by several orders of magnitude has no obvious, systematic effect on the crossing time.}
+
+\end{figure}
+
+\begin{figure}[h]
+\begin{subfigure}[d]{0.48\textwidth}
+\includegraphics[width=\textwidth]{Figures/{equilibration_0.05_1.0}.pdf}
+\end{subfigure}
+\begin{subfigure}[d]{0.48\textwidth}
+\includegraphics[width=\textwidth]{Figures/{equilibration_0.0005_1.0}.pdf}
+\end{subfigure}
+\begin{subfigure}[d]{0.48\textwidth}
+\includegraphics[width=\textwidth]{Figures/{equilibration_5.0e-6_1.0}.pdf}
+\end{subfigure}
+\caption{The number of fitness classes over time; the dotted line represents the chosen ``equilibration" cutoff. Additional classes are added past the cutoff only at very low $\sigma$ where, by design, the number of fitness classes is likely irrelevant anyway.}
+
+\end{figure}
+
+\bibliography{bib}
+
+\end{document}

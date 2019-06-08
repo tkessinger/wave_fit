@@ -1,0 +1,19 @@
+# latex/pdflatex auxiliary files:
+*.aux
+*.log
+*.out
+*.synctex.gz
+*.dvi
+
+# latex .pdfs, but not figure .pdfs
+*.pdf
+!ms/Figures/*.pdf
+!ms/figures/*.pdf
+
+# auxiliary bib files, just in case
+*.bbl
+*.bcf
+*.blg
+
+# output files
+output/*

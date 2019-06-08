@@ -1,0 +1,211 @@
+\documentclass[10pt]{revtex4}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{mathtools}
+
+\begin{document}
+
+We are interested in deriving the distribution of weights $P(w)$ \emph{as a function of the background fitness $x$}.
+To do this, we begin with the master equation governing the evolution of the weight distribution in the case of recombination.
+Let $p(w,T|k,t,x)$ be the probability that a bubble has reached weight $w$ at time $T$, given that there were $k$ individuals present in the lineage at time $t$, and the bubble has background fitness $x$.
+We have
+\begin{align*}
+-(\partial_t -k\partial_w) p(w,T|k,t,x) = &-k(2+x-\bar{x}+s+r)p(w,T|k,t,x) \\
+& + k(1+x-\bar{x}+s)p(w,T|k+1,t,x) \\
+& +kp(w,T|k-1,t,x) \\
+&+rk \int dw\prime \int_{x\prime} K_{x x\prime} p(w-w\prime , T|k-1, t, x) p(w\prime,T|1,t,x\prime).
+\end{align*}
+
+The first term is the probability flux out of state $(w,t)$.
+The second corresponds to birth, in which case the final state $(w,t)$ is reached with probability $p(w,T|k+1,t,x)$.
+The third corresponds to death, in which case the final state $(w,t)$ is reached with probability $p(w,T|k-1,t,x)$.
+The last term corresponds to removing an individual with fitness $x$ and generating an individual with fitness $x\prime$, summed over all the ways the $k-1$ individuals with fitness $x$ and the one with fitness $x\prime$ can yield a bubble of $w$ individuals at time $T$.
+The ``kernel" depends on the recombination model.
+In Richard's analysis the ``free recombination" kernel is used, where offspring fitness is simply generated randomly by sampling from the entire population: $K_{xx\prime} = \frac{1}{\sqrt{2\pi \sigma^2}} \exp \left[ -\frac{(x\prime - x(t))^2}{2\sigma^2} \right]$.
+
+Since we are interested in the weights, we need to consider not the generating function (which would make the analysis a little easier, as we could simply follow Ben's analysis almost line for line) but rather the Laplace transform $\hat{p}(z,T|k,t,x) = \int dz e^{-zw} p(w,T|k,t,x)$.
+We can simplify the resulting equation using $\hat{p}(z,T|k,t,x) = \hat{p}^k(z,T|1,t,x)$ by the \emph{ansatz} that all the lineages are separate, and also by using $\partial_t \hat{p}^k = k\hat{p}^{k-1} \partial_t \hat{p}$.
+This yields
+
+\begin{align*}
+-k\hat{p}^{k-1} \partial_t\hat{p} + kz\hat{p}^k = &-k(2+x-\bar{x}+s+r)\hat{p}^k \\
+& + k(1+x-\bar{x}+s)\hat{p}^{k+1} \\
+& +k\hat{p}^{k-1} \\
+&+rk \times \mathrm{recombination~term}.
+\end{align*}
+
+Collecting terms and dividing out by $k$ and $\hat{p}^{k-1}$ yields
+
+\begin{align*}
+-\partial_t\hat{p} = &-z\hat{p}\\
+&-(2+x-\bar{x}+s+r)\hat{p} \\
+&+ (1+x-\bar{x}+s)\hat{p}^2 \\
+& + 1\\
+&+r \times \mathrm{recombination~term}.
+\end{align*}
+
+Removing the $1$ is done by replacing $\hat{p}$ with $1-\phi$ (or equivalently $\phi = 1- \hat{p}$, yielding (after some algebra):
+\begin{align*}\partial_t \phi = z - (x-\bar{x} + s - r+z)\phi + (1+x-\bar{x} + s)\phi^2 - r \times \mathrm{recombination~term},
+\end{align*}
+where the recombination term has become $\int dx K_{xx\prime} \phi$.
+With the ``free recombination" kernel, that term simply because $\Phi$, the scaled fixation probability after averaging over the entire population.
+Switching variables by defining $\tilde{r} = r/\sigma$, $\tilde{s} = s/\sigma$, $\chi = x/\sigma - \sigma T$, $\tau = \sigma(T-t)$, and $\theta = \chi+\tau+\tilde{s}+z-\tilde{r}$, and making the approximation that the prefactor of $\phi^2$ is about $1$, yields
+\begin{equation}
+\partial_\tau \phi(\tau,z,\chi) = z + \tilde{r} \Phi(\tau, z) + \theta \phi(\tau,z,\chi) - \phi^2(\tau,z,\chi),
+\end{equation}
+where $\Phi(\tau, z) = \int d\chi P(\chi, \tau) \phi(\tau, z, \chi)$ is, as before, the rescaled version of $\phi$ when integrating over the entire fitness distribution $P(\chi, \tau)$.
+
+We can send $\tau$ to infinity and look for steady state solutions, since all we are interested in is the size of a single, short lived bubble (i.e., there is only ever one bubble at a time).
+For large values of $\theta$, the dominant terms are $\theta \phi(\tau,z,\chi)$ and $-\phi^2(\tau,z,\chi)$.
+Setting their sum equal to zero (steady state solution) and solving for $\phi$ yields $\phi(z,\chi) \approx \theta$.
+
+For small values of $\theta$, the remaining terms are more important.
+We have $\partial_\tau \phi = z + \tilde{r} \Phi(z) + \theta \phi(z, \chi)$.
+The relevant ``integrating factor" here is $\mu(\theta) = e^{\int -\theta d\theta} = e^{-\theta^2/2}$ (the use of $\theta$ rather than $\tau$ is justified by the fact that they depend linearly on each other).
+We therefore obtain, in the low $\theta$ limit,
+
+\begin{equation}
+\phi(z,\chi) = \frac{\int_0^\tau (z+\tilde{r}\Phi(\tau\prime)) e^{-\theta\prime^2/2} d\tau\prime}{e^{-\theta^2/2}}.
+\end{equation}
+
+The $z$ term in the integrand simply becomes $z\sqrt{2\pi} \sim z$.
+The second term needs to be treated with slightly more care.
+The major contribution to the integral will come from a well defined, large $\tau\prime$, corresponding to the maximum of $\exp(-\theta\prime^2/2 + \log \Phi(\tau^\prime))$ at $\tau\prime = \tau - \theta$.
+$\Phi(\tau)$ changes slowly and can be pulled out of the integral, yielding another Gaussian integral.
+We therefore have $\phi(z,\chi) \approx (z+\tilde{r}\Phi(z))e^{\theta^2}/2$, or, summarizing:
+
+\begin{equation}
+\phi(z,\chi) \approx
+\begin{cases}
+(z+\tilde{r}\Phi(z))e^{\theta^2}/2 & \theta \ll \Theta_c, \\
+\theta & \theta \gg \Theta_c.
+\end{cases}
+\end{equation}
+
+The crossover between these two solutions occurs roughly at some critical $\Theta_c$ given by setting them equal to each other: 
+
+\begin{equation}
+(z+\tilde{r}\Phi(z))e^{\Theta_c^2/2} = \Theta_c.
+\end{equation}
+
+For what happens from here, consult the writeup.
+
+This is where the fly in the ointment arises. Much of that analysis depends on a nonzero $\tilde{r}$.
+If we send it to zero, we instead have
+
+\begin{equation}
+\phi(z,\chi) \approx
+\begin{cases}
+ze^{\theta^2}/2 & \theta \ll \Theta_c, \\
+\theta & \theta \gg \Theta_c.
+\end{cases}
+\end{equation}
+
+This leaves us with no way to solve for $\Phi$, but anyway $\Phi$ is not what we need: we would like to retain the dependence on $\chi$ explicitly, to get the background dependent behavior of $\phi$.
+Trying to get $\Theta_c$ by itself yields $\Theta_c^2 = \log 2\Theta_c - \log z$, which there might well be some recursive way to approximate.
+Reducing it to $e^{\Theta_c}/\Theta_c = 2/z$ might help: some variant of the Lambert $W$ function could be used (via $-\Theta_c e^{-\Theta_c} = -z/2$, or $\Theta_c = -W(-z/2)$: I'd have to check and see if this behaves well).
+The bubble size distribution would then be recovered via $P(w) = \oint_C \frac{dz}{2\pi i} e^{zw} \phi(z,\chi)$, where we would have to choose a suitable curve.
+This might yield a nonsense answer, though, in the event that we have a singular perturbation.
+(It is however not obvious that the perturbation needs to be singular.
+In the fixation probability case, the singular perturbation arises from the fact that extinction is assured unless a mutation can jump onto higher fitness backgrounds.
+In the bubble size distribution case, we assume that extinction is assured anyway.)
+
+We can also try returning to the branching process equation and replacing the recombination term with a mutation distribution:
+
+\begin{align*}
+-(\partial_t -k\partial_w) p(w,T|k,t,x) = &-k(B+D+U)p(w,T|k,t,x) \\
+& + kBp(w,T|k+1,t,x) \\
+& +kDp(w,T|k-1,t,x) \\
+&+kU \int dw\prime \int ds\prime \rho(s\prime) p(w-w\prime , T|k-1, t, x) p(w\prime,T|1,t,x+s\prime).
+\end{align*}
+
+We have left $B$ and $D$ as the generic birth and death rates, with $U$ the mutation rate.
+The integral is now a sum over all the ways an individual with fitness $x$ can mutate into one with fitness $x+s$, removing an individual with fitness $x$ and adding one with fitness $x+s$.
+Accounting for the mutation term will be somewhat difficult, but we can simplify immediately by using $\rho(s) = \delta(s)$. Then
+
+\begin{align*}
+-(\partial_t -k\partial_w) p(w,T|k,t,x) = &-k(B+D+U)p(w,T|k,t,x) \\
+& + kBp(w,T|k+1,t,x) \\
+& +kDp(w,T|k-1,t,x) \\
+&+kU \int dw^\prime p(w-w\prime , T|k-1, t, x) p(w\prime,T|1,t,x+s),
+\end{align*}
+
+i.e., the mutation distribution ``collapses" onto a single value of $s$.
+Now we need to be careful, because we are about to take the Laplace transform of the whole thing. As before, we have
+
+\begin{align*}
+-k\hat{p}^{k-1} \partial_t\hat{p} + kz\hat{p}^k = &-k(B+D+U) \hat{p}^k \\
+& + kB\hat{p}^{k+1} \\
+& +kD\hat{p}^{k-1} \\
+&+Uk \int dw\prime \int dz p(w-w\prime , T|k-1, t, x) p(w\prime,T|1,t,x+s) e^{-zw}.
+\end{align*}
+
+In the last term, we could interchange the order of integration to get $\int dz e^{-zw} \int dw^\prime p(w-w\prime , T|k-1, t, x) p(w\prime,T|1,t,x+s)$, but then it is not totally obvious how to get rid of the convolution over $w\prime$. I still need to think about this.
+
+I have thought about this.
+Let's go back to that original differential equation arising from the master equation equation:
+\begin{align*}
+-(\partial_t -k\partial_w) p(w,T|k,t,x) = &-k(2+x-\bar{x}+s+r)p(w,T|k,t,x) \\
+& + k(1+x-\bar{x}+s)p(w,T|k+1,t,x) \\
+& +kp(w,T|k-1,t,x) \\
+&+rk \int dw\prime \int_{x\prime} K_{x x\prime} p(w-w\prime , T|k-1, t, x) p(w\prime,T|1,t,x\prime).
+\end{align*}
+The last term is the tricky bit, but it is important to remember that $K_{xx\prime}$ ``sends" $x$ to $x\prime$.
+The two terms in the inner integral refer to having one lineage that has reached weight $w - w\prime$ at time $T$, given that at time $t$ there were $k-1$ individuals, and a lineage with weight $w\prime$ at time $T$, given that at time $t$ a recombination event sent an individual in the original lineage  (carrying whatever focal mutation) into a new lineage of size $1$.
+We can now briefly reconsider what happens when we apply the Laplace transform (applying the integral operator $\int_0^\infty dw e^{-zw}$ to both sides--note that Neher and Shraiman (2011) actually has a typo here, as it uses $dz$ instead) to both sides.
+
+We have that $\int_0^\infty dw e^{-zw} \partial_t p(w,T|k,t,x) = \partial_t \int_0^\infty dw e^{-zw} p(w,T|k,t,x) = \partial_t \hat{p}(z,T|k,t,x) = \partial_t \hat{p}(z,T|1,t,x)^k = k\hat{p}(z,T|1,t,x)^k \partial_t p(z,T|1,t,x)$.
+Unfortunately we cannot simply exchange the order of integration in the second term, but we can use the Laplace transform identity $\mathcal{L}(df(t)/dt) = sF(s) - f(0)$, with $F(s)$ the transform of $f(t)$: this becomes $z\hat{p}(z,T|k,t,x) - \delta_{t,T}$, under the argument that the weight is zero at the initial timepoint but nonzero thereafter, provided the lineage doesn't immediately go extinct. So our preceding analysis holds.
+The last term remains tricky. It is not obvious what $\int dw e^{-zw} \int dw\prime \int_{x\prime} K_{x x\prime} p(w-w\prime , T|k-1, t, x) p(w\prime,T|1,t,x\prime)$.
+But it is instructive to note that the transform can basically be split into two parts, a contribution corresponding to $w\prime$ and another corresponding to $w - w\prime$, via $e^{-zw} = e^{-z(w-w\prime)}e^{-zw\prime}$.
+This causes the first term inside the integral to become $\hat{p}(z,T|k-1,t,x)$ and the second to become $\hat{p}(z,T|1,t,x\prime)$, consistent with our earlier argument.
+The fact that $K_{xx\prime}$ in the free recombination case is just a Gaussian centered around $\bar{x}$ is what causes that term to become $\Phi$.
+
+Now we need to think about what changes in the mutation case.
+Essentially, just as $K_{xx\prime}$ sends $x$ to $x\prime$, so too the distribution of mutational effects $\rho(s)$ sends $x$ to $x+s$.
+So the differential equation governing the evolution of $p$ becomes
+
+\begin{align*}
+-(\partial_t -k\partial_w) p(w,T|k,t,x) = &-k(2+x-\bar{x}+s+U)p(w,T|k,t,x) \\
+& + k(1+x-\bar{x})p(w,T|k+1,t,x) \\
+& +kp(w,T|k-1,t,x) \\
+&+Uk \int_0^w dw\prime \int_0^\infty ds \rho(s) p(w-w\prime , T|k-1, t, x) p(w\prime,T|1,t,x+s).
+\end{align*}
+
+This is starting to look like the differential equation of Good et al. (2012) for the fixation probability, though it took some thought to get there. By the same argument, the Laplace transform yields
+
+\begin{align*}
+-k\hat{p}(z,T|1,t,x)^{k-1} \partial_t\hat{p}(z,T|1,t,x) + kz\hat{p}(z,T|1,t,x)^k = &-k(2+x-\bar{x}+U)\hat{p}(z,T|1,t,x)^k \\
+& + k(1+x-\bar{x})\hat{p}(z,T|1,t,x)^{k+1} \\
+& +k\hat{p}(1,T|k,t,x)^{k-1} \\
+& +Uk \int_0^\infty ds \rho(s) \hat{p}(z,T|1, t, x)^{k-1} p(z,T|1,t,x+s).
+\end{align*}
+
+Note that the first term in the integral can be pulled out, as it doesn't depend on $s$.
+Collecting terms and dividing out by $k$ and $\hat{p}^{k-1}$ yields
+
+\begin{align*}
+-\partial_t\hat{p}(z,T|t,x) = &-z\hat{p}(z,T|t,x)\\
+&-(2+x-\bar{x}+U)\hat{p}(z,T|t,x) \\
+&+ (1+x-\bar{x})\hat{p}(z,T|t,x)^2 \\
+& + 1\\
+& +U \int_0^\infty ds \rho(s) \hat{p}(z,T|t, x+s).
+\end{align*}
+
+Swapping in $phi(z,T|t,x) = 1-\hat{p}(z,T|t,x)$ yields
+
+\begin{align*}\partial_t \phi(z,T|t,x) = z - (x-\bar{x} + s - r+z)\phi(z,T|t,x) + (1+x-\bar{x} + s)\phi(z,T|t,x)^2 - U\int_0^\infty ds \rho(s) \hat{p}(z,T|t,x_s),
+\end{align*}
+
+Switching variables as before and assuming $x-\bar{x} \ll 1$ yields
+
+\begin{equation}
+\partial_\tau \phi(\tau,z,\chi) = z + \tilde{U} \int_0^\infty d\tilde{s} \rho(\tilde{s}) \phi(\tau, z, \chi+\tilde{s}) + \theta \phi(\tau,z,\chi) - \phi^2(\tau,z,\chi).
+\end{equation}
+
+This is ultimately what we will need to solve.
+Using some tricks similar to Good et al. (2012) to get rid of the integral will hopefully be fruitful, though I still think the $U \to 0$ limit should be tractable (it just might be that asymptotic matching does not work).
+
+\end{document}

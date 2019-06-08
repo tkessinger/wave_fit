@@ -1,0 +1,576 @@
+\documentclass[10pt]{revtex4}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{mathtools}
+
+\begin{document}
+
+The dynamics of complex adaptations, such as the probability that a particular complex adaptation will appear and its time to fixation, are increasingly well understood.
+However, traditional results only apply in populations where genetic drift, not genetic draft, is the major force that shapes neutral variation.
+As these are radically different forces (they result in completely different coalescent dynamics, and notably genetic draft does not allow for a diffusion approximation), we expect complex adaptations to behave differently in each situation.
+Neher and Hallatschek (2013) suggested that the determining factor is the compound parameter $N\sigma$, where $\sigma$ is the standard deviation in fitness and $N$ is the population size.
+When this product is much less than one, drift is more important.
+When it is much greater than one, draft is more important.
+We begin by outlining the results in the neutral (drift) case, as summarized by Weissman et al. (2009) and Weissman et al. (2010).
+We then move on to discuss Neher et al. (2011), which summarized the dynamics of genetic draft in asexual populations, and Neher et al. (2013), which extended these results to sexual populations using a scaling argument.
+
+Consider the case of a complex adaptation that requires two mutations, the first of which is neutral or deleterious and the second of which is beneficial, in the drift regime.
+There are several ways for the complex adaptation to appear (after which it must drift to enough individuals to sweep through the population).
+First, both mutations can appear in one individual (deterministic), which requires $N\mu^2 \sim 1$, with $\mu$ the mutation rate.
+Otherwise, the intermediate mutation must appear and drift to an appreciable frequency, at which point the second mutation can arise on a background containing that intermediate mutation.
+What constitutes an ``appreciable frequency" will depend on the population size $N$, the benefit $s$ associated with the adaptation, and the fitness penalty $\delta$ associated with the intermediate.
+For small populations or small fitness effects (where $\delta < 1/N$), the intermediate is essentially neutral and can drift to more or less the entire population (neutral or sequential fixation).
+Otherwise, the intermediate will appear and persist for short times, forming ``bubbles" that transiently persist at low frequencies (tunneling).
+The size of these bubbles is determined by the fitness detriment and advantage of the intermediate and the adaptation, respectively (Weissman refers to different regimes herein as neutral semi-deterministic, neutral stochastic, and deleterious tunneling, respectively).
+A final possibility is for the two mutations to arise on different genetic backgrounds, which recombine.
+This can speed up the rate of valley crossing somewhat, provided that $s > r$, roughly speaking.
+If this is true, the rate at which beneficial adaptations establish is higher than or at least comparable to the rate at which they are broken up by recombination.
+
+We will outline this in a little more detail now.
+Note that in the asexual case, the rate of valley crossing can be obtained by considering the establishment probability of the complex adaptation, which will depend (recursively) on the dynamics of each intermediate.
+
+\subsection{Valley crossing in asexual populations}
+
+We will briefly discuss the different possible parameter regimes and the valley crossing times that result therefrom.
+We first consider the regime where $N\mu$ is small.
+In this case, mutations are fairly rare: there will generally only be one intermediate mutation lineage at a time, and the first successful double mutant subpopulation that arises within this lineage determines the fixation probability.
+The important number in this regime is the weight $W(t) = \int_0^t n(t^\prime) dt^\prime$, with $n(t)$ the number of mutant individuals at time $t$.
+We also define the total weight $W = \int_0^T n(t)dt$, with $T$ the duration over which an intermediate ``bubble" persists.
+
+When a beneficial intermediate arises within such a ``bubble" and later sweeps to fixation, this is called \emph{tunneling}. The beneficial intermediate then fixes with probability $\frac{1-\exp{-2s}}{1-\exp{-2Ns}} \approx s$. Hence $Ws\mu$ gives the fixation probability.
+
+From diffusion theory, a neutral mutation will generally persist for about $T$ generations and a maximum lineage size of $T$ individuals, with probability $1/T$.
+The weight is therefore of order $T^2$.
+Hence $T > 1/\sqrt{s\mu}$ is the condition for tunneling to be likely to occur, which implies that the fixation probability is roughly $p \sim \sqrt{s\mu}$. This is referred to as \emph{neutral tunneling}.
+
+If the lineage is not neutral ($\delta > 0$), the dynamics are not necessarily much different.
+Provided that $\delta < \sqrt{s\mu}$, the mutation will likely give rise to a beneficial subpopulation that is destined to fix well before it grows to order $1/\delta$ (at sizes smaller than this, its dynamics are effectively neutral).
+Note that this differs from the condition for conventional neutrality, $\delta < 1/N$.
+On the other hand, if $\delta > \sqrt{s\mu}$, then the mutant lineage's size is effectively capped at $1\delta$.
+The total weight will be of order $1/\delta^2$, and the fixation probability is $p \sim s\mu/\delta$. This is the \emph{deleterious tunneling} regime.
+
+All of this assumes that the mutant subpopulation, while remaining small compared to $N$, can give rise to a beneficial mutant destined to fix: for effectively neutral mutations, this implies $1/\sqrt{s\mu} < N$.
+If this condition does not obtain, then intermediate mutants can drift to fixation (with probability $1/N$) before the beneficial mutant arises and fixes.
+This is the \emph{sequential fixation} regime, in which $p \sim 1/N$.
+For deleterious mutations, the same rules apply, except that the condition is $1/\delta > N$ instead of $1/\sqrt{s\mu} > N$.
+
+Finally, the preceding analysis has assumed that both intermediate and double mutants are sufficiently rare that only one such lineage exists at any given time. This assumption can be relaxed, though the results are not necessarily enlightening. The major effect is that as the number of mutations in the population increases, they will start to interfere with one another during expansion.
+
+\subsection{More rigorous analysis}
+
+The preceding argument has relied on estimating the average value of the weight $W$.
+The true distribution of bubble sizes will determine the probability that a particular mutant $k$ is successful, however, via
+
+\begin{equation}
+p_k = \int_0^\infty dw P(W = w) (1-e^{\mu_k p_{k+1}}) = 1-\mathbb{E}(e^{\mu_k p_{k+1}}),
+\end{equation}
+
+with $\mu_k$ the mutation rate from the state of having $k$ mutations to the state of having $k+1$ mutations.
+This has the form of a Laplace transform, with
+
+\begin{equation}
+p_k = 1-\varphi(\mu_k p_{k+1})
+\end{equation}
+and
+\begin{equation}
+\varphi(y) = \mathbb{E}(e^{-yW}).
+\end{equation}
+Calculating $\varphi$ is difficult because $W$ is not a Markov random variable. 
+However, we can instead consider the variable $n(t), W(t)$ and compute the transform $\Phi (x,y,t) = \mathbb{E}(e^{-xn-yW})$.
+Evaluating it at $x=0$ will average over all values of $n$ and return the Laplace transform $\phi$ for the weight.
+We proceed by considering the growth of a single mutant lineage as a branching process.
+The time evolution of $p(n,w)$, the probability that there are $n$ individuals and a total weight $w$ at a particular time $t$, is given by the master equation
+\begin{equation}
+p_{t+dt}(n,w) = (n+1)p_t(n+1,w)dt + (n-1)(1-\delta)p_t(n-1,w)dt + (1-(2-\delta)ndt)p_t(n,w-ndt).
+\end{equation}
+Using the relation $p(n,w-ndt) = p(n,w)-ndt\partial_w p_t(n,w)$ allows us to rewrite this as the partial differential equation
+\begin{equation}
+\partial_t p_t (n,w) = (n+1)p_t(n+1,w) + (n-1)(1-\delta) p_t(n-1,w) - n(2-\delta)p_t(n,w)-n\partial_w p_t(n,w).
+\end{equation}
+The transform $\Phi(x,y,t) = \sum_n^\infty \int_{-\infty}^\infty dw p_t(n,w) e^{-xn-yw}$.
+Differentiating both sides and substituting the above yields a PDE for $\Phi$, which can be arranged into
+\begin{equation}
+\partial_t \Phi = -e^x - (1-\delta e^{-x} + (2-\delta) + y)\partial_x \phi .
+\end{equation}
+This can be solved using the characteristic equation $\frac{dx}{dt} = e^x + (1-\delta)e^{-x} - 2+\delta-y$.
+It is found that $\Phi$ depends on $x$ and $t$ via $\frac{e^{-x}-a_{-}}{a_{+}-e^{-x}} \exp(-(1-\delta)(a_{+} - a_{-})t)$, where $a_{\pm}$ are given by
+\begin{equation}
+a_{\pm}(y) = \frac{2-\delta+y \pm \sqrt{(2-\delta+y)^2 -4(1-\delta)}}{2(1-\delta)}.
+\end{equation}
+Note that the requirement that the lineage start at $t=0$ with one individual means $p_0(n,w) = \delta_{1,n} \delta (w)$, with $\delta$ the Kronecker and Dirac deltas respectively.
+The boundary condition for $\Phi$ becomes $\Phi(x,y,0) = e^{-x}$.
+Solving for $\Phi$, then for $\phi(y,t) = \Phi(0,y,t)$, and finally for $\varphi = \lim_{t\to \infty} \phi (y,t)$ (the Laplace transform for the total bubble size) yields:
+\begin{equation}
+\varphi(y) = \frac{2-\delta+y-\sqrt{(2-\delta+y)^2 - 4(1-\delta)}}{2(1-\delta)}.
+\end{equation}
+This expression allows us to derive the ``weight" for each individual mutant bubble.
+We need to take the inverse Laplace transform of $\varphi (y)$ to do so.
+It is
+\begin{equation}
+P(w) = \frac{\exp(-(2-\delta)w)}{w\sqrt{1-\delta}}I_1(2w\sqrt{1-\delta}),
+\end{equation}
+where $I_1$ is a modified Bessel function of the first kind.
+Expanding out the modified Bessel function in the limit of $w \gg 1$ yields
+\begin{equation}
+P(w) \approx \frac{\exp(-(2-\delta-2\sqrt{1-\delta})w)}{w^{3/2}\sqrt{4\pi(1-\delta)^3}} \times (1-\frac{3}{16w\sqrt{1-\delta}} + O(1/w^2)).
+\end{equation}
+This has the behavior $P(w) \sim w^{-3/2}$ until dropping off at $w \sim 1/\delta^2$.
+
+\subsection{Valley crossing in sexual populations}
+
+In sexual populations, recombination can affect the valley crossing rate in one of two basic ways.
+First, recombination can increase the total number of double mutants that appear by causing deleterious single mutants to appear on the same genetic background.
+Second, recombination can slow the expansion of beneficial double mutants by forcing them to recombine with (mostly wild type) individuals.
+We will briefly consider some basic parameter regimes, then explore the analytics.
+
+First, suppose $r \gg s, \delta$.
+In this limit, the single mutants will be present at roughly linkage equilibrium: when their frequencies $x_a, x_b$ satisfy $(s+2\delta)x_ax_b - \delta(x_a+x_b) > 1/N$, the double mutant will begin to spread deterministically in the population (selection, the left side, will overwhelm drift, the right side).
+Thus, double mutants will spread deterministically while single mutants are at low frequency only if $\delta \gg s$.
+If selection against single mutants is strong, i.e., $\delta^2/s \gg \max (\mu, 1/N)$, the rate at which a population reaches this threshold will be sharply reduced.
+There are essentially two stable equilibria, one where all the population is wild-type and one where the population is all double mutant, with an unstable saddle point at $x_a = x_b \approx \delta/s$.
+
+If the population is large ($N \gg \delta^2/s$), then in linkage equilibrium, the frequencies will be distributed roughly as
+\begin{equation}
+P(x_a,x_b) \sim \exp(-N(\delta(x_a+x+b) - sx_ax_b).
+\end{equation}
+In frequency space, $P$ peaks at fixation for either the wild type or double mutant and has a saddle point at $\delta/s$, as previously mentioned.
+If $\delta \ll s$, the population must drift along the ridge where $x_a = x_b$, which will take approximately $\log \tau \sim N\delta^2/s$ generations, because the probability of the population being near the saddle point is lower than that of being near the wild-type equilibrium by a factor of $\exp (-N\delta^2/s)$. 
+The population must drift to the unstable saddle point at $x_a = x_b \approx \delta/s$ and then ride selection to the stable equilibrium at $x_a = x_b = 1$, and the exponent roughly sets the probability of making it to the saddle point from $x_a = x_b \approx 0$.
+This reasoning applies provided $r \gg s \gg \delta \gg \max (\sqrt{\mu s},\sqrt{s/N}$.
+Conversely, if $\delta \gg s$, what is necessary is for at least one mutant to drift close to fixation, which takes order $\log \tau = N\delta$ generations.
+Finally, if $\delta \gg r$, selection keeps the population in linkage equilibrium, and a lucky double mutant must drift up to high frequency while getting lucky enough to avoid recombination.
+
+Now, suppose $r \ll s$.
+A successful double mutant grows initially at a rate $s - r = \tilde{s}$, which roughly sets the fixation probability.
+If $N\mu$ is large enough that single mutants are produced constantly, then the appearance of the single mutant is essentially deterministic, as in the asexual case.
+If not, then we must consider the branching process dynamics, but the wait time is dominated by the waiting time to the first successful single mutant (i.e., the first one destined for fixation), which is distributed as $\tau \approx 2N\mu/p$, with $p$ the success probability.
+
+Suppose a mutant lineage arises and drifts for $T$ generations.
+The probability that it will give rise to a successful double mutant and sweep can be expressed as
+\begin{equation}
+p \approx \int P_T \mathrm{prob}(T)dT.
+\end{equation}
+For times $t \ll \min(N, 1/\delta)$ the mutant is unlikely to reach a high frequency, and the expected number of individuals $\mathrm{E}(n(t)) = e^{-\delta t}$ is small ($\sim 1$) until approximately $t \sim 1/\delta$, when selection starts to ``cut off" the lineage size (as with asexual populations).
+In general the size of $n(t)$, as well as the number of mutants or recombinants produced by a lineage or in a given time interval, will have exponential tails, so a good approximation is to consider only the drift times and let the other variables be more or less fixed.
+Moreover, as selection ``cuts off" the lineage size and drift time around $1/\delta$, we can simply assume the drift time is limited by that.
+
+$P_T$ can be decomposed into a probability that the mutation is successful due to successive mutations (something like tunneling, almost identical to the asexual case) or due to recombination between another nascent mutant subpopulation.
+The asexual population route is almost identical to the previous section, with the exception that $\tilde{s}$, not $s$, sets the growth rate and hence fixation probability of a double mutant.
+
+We now zero in on the sexual path $P_{r,T}$.
+During the time $T$ over which a bubble of genotype $Ab$ persists, a number of individuals $\approx N\mu T$ $aB$ individuals arise.
+The success probability is therefore given by
+\begin{equation}
+P_{r,T} \approx N\mu T \int P_{r,T^\prime} \mathrm{prob} (T^\prime) dT^\prime,
+\end{equation} where the last term corresponds to the probability density $\mathrm{prob}(T^\prime)$ of wait times for the $aB$ lineage, times the probability $P_{r,T^\prime}$ of success contingent on $T$.
+The number of $AB$ lineages produced by recombination is of order $r/N \int n_{Ab}(t) n_{aB}(t) dt$, and the lineages reach sizes of $T$ and $T^\prime$ respectively, persisting for $T^\prime$ generations: so the total integral is simply $TT^{\prime 2}$.
+The total success probability $P_{r,T,T^\prime}$ therefore grows as $N\mu TT{^\prime 2}$ until it saturates near $1$ at $T^\prime \sim \sqrt{Nr\tilde{s}}$.
+The success probability becomes
+
+\begin{equation}
+P_{r,T} \sim
+\begin{cases}
+T^3 \mu r \tilde{s} & T \ll (N/r\tilde{s})^{1/3}, \\
+T^3/2 \mu \sqrt{Nr \tilde{s}} & (N/r\tilde{s})^{1/3} \ll T \ll (N\mu^2r\tilde{s})^{-1/3}, \\
+1 & T \gg (N\mu^2r\tilde{s})^{-1/3}.
+\end{cases}
+\end{equation}
+
+
+The preceding analysis has assumed implicitly that $\delta$ is somewhat small.
+If this assumption is relaxed, then $T$ and $T^\prime$ are roughly bounded by $1/\delta$, as in the asexual case.
+Interestingly, this causes the valley crossing time to be reduced by a much greater degree in the sexual case than in the asexual case, meaning that recombination facilitates the crossing of deep valleys.
+
+\subsection{Valley crossing when $N\sigma \gg 1$}
+
+The past sections have assumed that the distribution of fitnesses in the population is roughly equal, so that the primary force governing the behavior of neutral alleles is genetic drift.
+In this situation, standard diffusion results (including fixation probabilities) apply, and there is essentially no effect arising from genetic backgrounds of differential fitness.
+The condition $N\sigma \ll 1$ is sufficient, where $\sigma$ is the standard deviation in fitness.
+
+If, on the other hand, we have $N\sigma \gg 1$, then the fate of any individual mutation will depend sharply on the genetic background on which it arises.
+Mutations that arise on unfit backgrounds may be doomed to extinction, and mutations that arise on fit backgrounds may be destined for fixation even if they are themselves deleterious.
+If fitness variation is due to the effects of many weak loci, the population takes the form of a Gaussian traveling ``wave", and by Fisher's ``fundamental theorem" of natural selection, the mean fitness $\bar{x}$ advances due to selection at a rate $\dot{\bar{x}} = \sigma^2$.
+This advance is determined by the dynamics of the nose, where deviations from Gaussianity become important (due to the discrete number of individuals).
+Below some cutoff point $\Theta$, the establishment probability is essentially zero: above this cutoff point it starts to increase roughly as $P_\mathrm{fix} \sim x+s-r-\bar{x}$, so that the genetic background fitness $x$ may dominate.
+This may appear to increase markedly the probability of a successful double mutant, but the size of mutant bubbles will tend to be smaller due to the advancing mean fitness $\bar{x} = \sigma^2t$ (i.e., the mean fitness is time dependent).
+
+We will focus solely on the valley crossing problem here.
+The theory is rather similar to the drift case: consider the weight of mutant bubbles, then what happens to individuals within those bubbles.
+The culmination is, essentially, to show that the distribution of weights $P(w)$ scales not as $w^{-3/2}$, as in the drift case, but as $w^{-2}/\sqrt{2 \log w}$, i.e., smaller mutant bubbles.
+What have hitherto been missing from this theory are clear analytics for the contribution of the parameters $s, \delta, r, \sigma$ outside of whether $N\sigma \gg 1$ or not.
+(In this section, $s$ will be used to mean the opposite of $\delta$ for a nascent mutant bubble.
+In general the notation needs cleaning up.)
+Furthermore the only type of recombination explicitly covered here is the ``communal" recombination model, where individuals essentially recombine with the entire population: this can be shown to behave similarly to ``free" recombination (e.g., rapid template switching in HIV recombination), where new individuals are generated by randomly sampling their loci from both parents (i.e., an effectively infinite crossover rate).
+A discussion of how crossovers work will be covered in the next section.
+
+As in the drift case, the birth of a double mutant can be interpreted as a Poisson process. If $n_1(t)$ and $n_2(t)$ are the sizes of the individual mutant lineages, then
+\begin{equation}
+P(T) = e^{-\mu \int_0^T (n_1(t) + n_2(t)) dt}
+\end{equation}
+gives the probability that a double mutant has not yet arisen.
+The time integrated bubble size (weight) then provides the number of chances for a successful double mutant to arise.
+This must be obtained by considering the dynamics of bubbles that arise on any of the genetic backgrounds $x$ in the population.
+We will determine this now.
+Let $x$ be the fitness of the lineage, $k$ be the number of mutants at the previous time step, $n$ be the current number, and $T$ and $t$ be the current and previous times.
+The fate of a mutant lineage is governed by the master equation
+\begin{align*}
+-\partial_t p(n,T|k,t,x) = &-k(2+x-\bar{x}+s+r)p(n,T|k,t,x) \\
+& + k(1+x-\bar{x}+s)p(n,T|k+1,t,x) \\
+& +kp(n,T|k-1,t,x) \\
+&+rk\sum_{n^\prime} \int_{x^\prime} K_{x x^\prime} p(n-n^\prime , T|k-1, t, x) p(n^\prime,T|t,t,x^\prime).
+\end{align*}
+Here, $K$ represents a recombination ``kernel", i.e., a function that assigns to each $x$ an offspring fitness $x^\prime$ with some probability.
+The first term corresponds to the probability that nothing happens, the second to the duplication of one of the $k$ individuals (as usual, the death rate is normalized to $1$), the third to one of the $k$ individuals dying, and the last to outcrossing, yielding an individual with background fitness $x^\prime$.
+
+We can use generating functions to remove the convolution over $n$. Define $\hat{p}(\lambda, T|k,t,x) = \sum_n \lambda^n p(n,T|k,t,x)$. Then
+\begin{align*}
+-\partial_t \hat{p}(\lambda,T|k,t,x) = &-k(2+x-\bar{x}+s+r)\hat{p}(\lambda,T|k,t,x) \\
+& + k(1+x-\bar{x}+s)\hat{p}(\lambda,T|k+1,t,x) \\
+& + k\hat{p}(\lambda,T|k-1,t,x) \\
+& + rk\int_{x^\prime} K_{x x^\prime} \hat{p}(\lambda, T|k-1, t, x) \hat{p}(\lambda,T|t,t,x^\prime).
+\end{align*}
+From this we can use the fact that all $k$ individuals are independent, i.e., $\hat{p}(\lambda,t|k,t,x) = \hat{p}^k(\lambda,T|t,x)$.
+The right hand side becomes $-\partial_t \hat{p}(\lambda,T|k,t,x) = -k\hat{p}^{k-1}(\lambda,T|t,x)\partial_t \hat{p}(\lambda,T|t,x)$.
+Dividing out $k\hat{p}^{k-1}(\lambda,T|t,x)$ yields
+\begin{align*}
+-\partial_t \hat{p}(\lambda,T|k,t,x) = &-(2+x-\bar{x}+s+r)\hat{p}(\lambda,T|t,x) \\
+& + (1+x-\bar{x}+s)\hat{p}^2(\lambda,T|t,x) \\
+& + 1 \\
+& + r\int_{x^\prime} K_{x x^\prime} \hat{p}(\lambda,T|t,t,x^\prime).
+\end{align*}
+(The last term is justified by the fact that $\hat{p}(\lambda,T|k-1,t,x)$ doesn't depend on $x^\prime$.)
+As usual, the boundary condition is $\hat{p}(\lambda,T|T,x) = \lambda$, corresponding to one individual at time $0$.
+Substitutiong $\phi = 1 - \hat{p}$ yields
+\begin{align*}
+\partial_t \phi(\lambda,T|k,t,x) = &-(x-\bar{x}+s-r)\phi(\lambda,T|t,x) \\
+& + (1+x-\bar{x}+s)\phi^2(\lambda,T|t,x) \\
+& - r\int_{x^\prime} K_{x x^\prime} \phi(\lambda,T|t,t,x^\prime).
+\end{align*}
+The boundary condition is now $\phi(\lambda,T|T,x) = 1-\lambda$.
+In the weak selection limit, the non-constant parts of the $\phi^2$ prefactor are small, so we have
+\begin{align*}
+-\partial_t \phi(\lambda,T|k,t,x) = &(x-\bar{x}+s-r)G(\lambda,T|t,x) \\
+& - \phi^2(\lambda,T|t,x) \\
+& + r\int_{x^\prime} K_{x x^\prime} \phi(\lambda,T|t,t,x^\prime).
+\end{align*}
+Using $\bar{x} = vt = \sigma^2 t$, we can rescale via $\psi(T,t,x) = \phi(\lambda,T,t,x)/(\sigma\epsilon)$, with $\epsilon = 1-\lambda$.
+Similarly rescaling $\tilde{r} = r/\sigma$, $\tilde{s} = s/\sigma$, $\chi = x/\sigma - \sigma T$, and $\tau = \sigma(T-t)$ yields
+\begin{align*}
+\partial_t \psi(\tau,\chi) = &\tilde{r}\int K_{\chi \chi^\prime} \psi (\tau, \chi^\prime) \\
+& + (\chi + \tau + \tilde{s} - \tilde{r}) \psi (\tau,\chi) \\
+& - \epsilon \psi^2 (\tau,\chi).
+\end{align*}
+Integrating this over the fitness distribution $P(\chi,\tau)$ would yield the scaled generating function $\Phi(\tau) = \int d\chi P(\chi,\tau)\psi(\tau,\chi)$.
+(Note that integrating the recombination term over $P(\chi,\tau)$, in the free recombination model, yields simply $\tilde{r}\Phi(\tau)$.)
+
+Similar reasoning will allow us to derive the behavior of the weight distribution.
+We can proceed by leaving the bulk of the equation in the form of $\phi$, since ultimately what we will be interested in is the Laplace transform $\hat{p} (z,T|k,t,x) = \int dz e^{-zw} p(w,T|k,t,x)$.
+Here $w$ represents (as before) the weight of a mutant bubble and evolves according to
+\begin{align*}
+-(\partial_t -k\partial_w) p(w,T|k,t,x) = &-k(2+x-\bar{x}+s+r)p(w,T|k,t,x) \\
+& + k(1+x-\bar{x}+s)p(w,T|k+1,t,x) \\
+& +kp(w,T|k-1,t,x) \\
+&+rk \int dw^\prime \int_{x^\prime} K_{x x^\prime} p(w-w^\prime , T|k-1, t, x) p(w^\prime,T|t,t,x^\prime).
+\end{align*}
+We still have that $\hat{p} (z,T|k,t,x) = \hat{p}^k (z,T|1,t,x)$, by the fact that each of the $k$ copies of the mutant allele is independent of the other.
+Differentiating $\hat{p}$ with respect to $w$ pulls out a factor of $-z$, but otherwise the behavior is very similar to the previous case.
+Rescaling variables as above and introducing $\theta = \chi+\tau+\tilde{s}+z-\tilde{r}$ and $\phi = (1-\hat{p}(z,T|1,t,x))/\sigma)$ yields
+\begin{equation}
+\partial_\tau \phi(\tau,z,\chi) = z + \tilde{r} \Phi(\tau, z) + \theta \phi(\tau,z,\chi) - \phi^2(\tau,z,\chi),
+\end{equation}
+where $\Phi(\tau, z) = \int d\chi P(\chi, \tau) \phi(\tau, z, \chi)$ is, as before, the rescaled version of $\phi$ when integrating over the entire fitness distribution $P(\chi, \tau)$.
+(In the communal recombination model, the contribution of the recombination term simply becomes $\tilde{r}\Phi$, since the fitness of an individual is, in that model, determined by simply sampling randomly from the population.)
+
+We can send $\tau$ to infinity and look for steady state solutions, since all we are interested in is the size of a single, short lived bubble (i.e., there is only ever one bubble at a time).
+For large values of $\theta$, the dominant terms are $\theta \phi(\tau,z,\chi)$ and $-\phi^2(\tau,z,\chi)$.
+Setting their sum equal to zero (steady state solution) and solving for $\phi$ yields $\phi(z,\chi) \approx \theta$.
+
+For small values of $\theta$, the remaining terms are more important.
+We have $\partial_\tau \phi = z + \tilde{r} \Phi(z) + \theta \phi(z, \chi)$.
+The relevant ``integrating factor" here is $\mu(\theta) = e^{\int -\theta d\theta} = e^{-\theta^2/2}$ (the use of $\theta$ rather than $\tau$ is justified by the fact that they depend linearly on each other).
+We therefore obtain, in the low $\theta$ limit,
+
+\begin{equation}
+\phi(z,\chi) = \frac{\int_0^\tau (z+\tilde{r}\Phi(\tau^\prime)) e^{-\theta^\prime^2/2} d\tau^\prime}{e^{-\theta^2/2}}.
+\end{equation}
+
+The $z$ term in the integrand simply becomes $z\sqrt{2\pi} \sim z$.
+The second term needs to be treated with slightly more care.
+The major contribution to the integral will come from a well defined, large $\tau^\prime$, corresponding to the maximum of $\exp(-\theta^\prime^2/2 + \log \Phi(\tau^\prime))$ at $\tau^\prime = \tau - \theta$.
+$\Phi(\tau)$ changes slowly and can be pulled out of the integral, yielding another Gaussian integral.
+We therefore have $\phi(z,\chi) \approx (z+\tilde{r}\Phi(z))e^{\theta^2}/2$, or, summarizing:
+
+\begin{equation}
+\phi(z,\chi) \approx
+\begin{cases}
+(z+\tilde{r}\Phi(z))e^{\theta^2}/2 & \theta \ll \Theta_c, \\
+\theta & \theta \gg \Theta_c.
+\end{cases}
+\end{equation}
+
+
+The crossover between these two solutions occurs roughly at some critical $\Theta_c$ given by setting them equal to each other: 
+
+\begin{equation}
+(z+\tilde{r}\Phi(z))e^{\Theta_c^2/2} = \Theta_c.
+\end{equation}
+
+We would still like to find $\Phi(z)$. The solvability condition given for $\Phi(z)$ by integrating the equation for $\partial_\tau \phi(z,\chi)$ over the fitness distribution is
+
+\begin{equation}
+0 = z + \tilde{s}\Phi(z) - \int \frac{d\chi}{\sqrt{2\pi}}e^{-\chi^2/2}\phi^2(z,\chi).
+\end{equation}
+
+For small $\tilde{r}$, the integral on the right is dominated by the crossover point $\Theta_c$. Using the above form of $\phi(z,\chi)$ allows us to solve the integral: it becomes $ze^{-\tilde{r}\Theta_c} + \tilde{r}e^{-\tilde{r}\Theta_c}\Phi(z)$. We thus have
+
+\begin{equation}
+\Phi(z) = z\frac{1-e^{-\tilde{r}\Theta_c}}{\tilde{r}e^{-\tilde{r}\Theta_c} - \tilde{s}}.
+\end{equation}
+
+Using the crossover condition gives us an expression for $\Theta_c$:
+
+\begin{equation}
+\Theta_c e^{-\Theta_c^2/2} = z\frac{\tilde{r}-\tilde{s}}{\tilde{r}e^{-\tilde{r}\Theta_c} - \tilde{s}}.
+\end{equation}
+
+If $\tilde{s}$ is more important than $\tilde{r}e^{-\tilde{r}\Theta_c}$, we have $\Theta_c = \sqrt{-2\log(ze^{\tilde{r}\Theta_c}/\Theta_c}$, which means
+
+\begin{equation}
+\Phi(z) = z\frac{e^{\tilde{r}\Theta_c - 1}}{\tilde{r}} =
+\begin{cases}
+z\sqrt{-2\log z} & \tilde{r}\Theta_c \ll 1 \\
+ze^{\tilde{r}\Theta_c}/\tilde{r} & \tilde{r}\Theta_c \gg 1.
+\end{cases}
+\end{equation}
+
+If the opposite is true, we have instead
+
+\begin{equation}
+\Phi(z) = \frac{z}{\tilde{s}}(1-e^{\tilde{r}\Theta_c}) =
+\begin{cases}
+\frac{z\tilde{r}\sqrt{-2\log z}}{\tilde{s}} & \tilde{r}\Theta_c \ll 1 \\
+\frac{z}{\tilde{s}} & \tilde{r}\Theta_c \gg 1.
+\end{cases}
+\end{equation}
+
+Note the dependence on $z\sqrt{-2\log z}$ in the low $\tilde{r}$ limit.
+We can now compute the weight distribution, having finally obtained $\Phi(z)$, the Laplace transform thereof.
+We have
+
+\begin{equation}
+P(w) = \oint_C \frac{dz}{2\pi i}e^{zw}\bar{\Phi}(z).
+\end{equation}
+
+Computing this integral with either of the $\tilde{r}\Theta_c \ll 1$ expressions will yield
+
+\begin{equation}
+P(w) \sim \oint_C \frac{dz}{2\pi i}e^{zw}z \sqrt{-2 \log z} = \int^\infty_0 \frac{dy y e^{-yw}}{\sqrt{\log y^{-2}}} \sim \frac{w^{-2}}{\log w^2}.
+\end{equation}
+
+%The boundary condition is given by $\hat{\phi}(0,z,\chi) = 0$, since the ``weight" is zero at time zero.
+%We can solve this by sending $\tau$ to infinity, assuming that tunneling is rare and requires many mutant ``bubbles" to occur.
+%
+%We will need to figure out what happens to mutations in the ``bulk" of the wave versus the ``nose".
+%The above expression for $\Phi$ yields a differential equation
+%\begin{equation}
+%\partial_\tau \Phi(\tau) = \partial_\tau \int d\chi P(\chi,\tau)\psi(\tau,\chi) = \tilde{s} \Phi(\tau) - \epsilon \int d\chi P(\tau,\chi) \psi^2 (\tau,\chi).
+%\end{equation}
+%Note that, for beneficial mutations, the two right hand terms balance each other over long time scales, but for neutral and deleterious mutations, no such steady state exists.
+%For the ``communal" recombination model used in Neher and Shraiman (2011) and (2010), the recombination contribution in the ODE for $\psi$ simplifies to $\tilde{r} \Phi(\tau)$.
+%
+%We proceed in the limits of large positive and negative growth rate $\beta = \chi+\tau+\tilde{s}-\tilde{r}$.
+%For $\beta < 0$, only the first term in the equation for $\psi$ matters, as $psi < 1/\epsilon$: for $\beta > 0$, only the second one matters.
+%Accordingly,
+%\begin{equation}
+%\psi(\tau,\chi) =
+%\begin{cases}
+%\tilde{r} e^{\beta^2/2} \int^\tau_0 d\tau^\prime \Phi(\tau^\prime)e^{-\beta^2/2} & \beta < \beta_c (\tau) \\
+%\beta/\epsilon & \beta > \beta_c (\tau).
+%\end{cases}
+%\end{equation}
+%
+%(Still to-do: write up $\beta_c$ and explain how the crossover occurs.
+%Some of the following calculations will still need cleaning up.)
+%
+%Correspondingly,
+%\begin{equation}
+%\hat{\phi}(z,\chi) =
+%\begin{cases}
+%e^{\beta^2/2}(z+\tilde{r}\Phi(z)) & \beta < \beta_c (\tau) \\
+%\beta & \beta > \beta_c (\tau).
+%\end{cases}
+%\end{equation}
+%
+%The jump from this condition to the Laplace transform for the bubble size $\Phi(z) = \mathbb{E}(e^{-zw})$ needs to be filled in, but the transform in the low $\tilde{s}$ (neutral) or high $\tilde{r}$ limit is given by
+%\begin{equation}
+%\Phi(z) = z\frac{e^{\tilde{r}\beta_c - 1}}{\tilde{r}} = 
+%\begin{cases}
+%z\sqrt{-2\log z} & \tilde{r} \beta_c \ll 1 \\
+%z e^{\tilde{r}\beta_c}/\tilde{r} & \beta_c \gg 1.
+%\end{cases}
+%\end{equation}
+%It is worth noting that $r$ here is the total recombination rate between two arbitrary loci, not necessarily between the two loci of interest.
+%
+%The inverse Laplace transform is then given by
+%\begin{equation}
+%P(w) = \oint \frac{dz}{2\pi i} e^{zw} \bar{\Phi}.
+%\end{equation}
+%The low-$r$ regime above yields
+%\begin{equation}
+%P(w) = \oint \frac{dz}{2\pi i} e^{zw}z\sqrt{\log z^2} \sim \frac{1}{w^2\sqrt{\log w^2}}.
+%\end{equation}
+The weight distribution scales as $P(w)\sim 1/w^2 \sqrt{2\log w}$, compared to $P(w) \sim w^{-3/2}$ in the drift case.
+As expected, draft decreases the bubble size distribution but lessens the dependence on $\delta$.
+The unfortunate effect of this calculation is that we have explicitly \emph{not} used the assumption of no recombination.
+That might simplify the analysis substantially and is the next thing to check.
+
+(Following is an aborted attempt to study the behavior of an allele directly using the generating function and an explicitly time dependent advancing wave. It is included for completeness.)
+Let's proceed using the assumption of no recombination, but that the effect of mutations is small enough (or the number of loci large enough) for the fitness distribution to remain roughly Gaussian.
+We have, as before,
+
+\begin{equation}
+p(n,t) = dt(n-1)(1+s+x-\bar{x})p(n-1,t-dt) + dt(n+1)p(n+1,t-dt) + (1-ndt(2+s+x-\bar{x}))p(n,t-dt).
+\end{equation}
+
+Rearranging yields
+\begin{equation}
+p(n,t) - p(n,t-dt) = dt(n-1)(1+s+x-\bar{x})p(n-1,t-dt) + dt(n+1)p(n+1,t-dt) - ndt(2+s+x-\bar{x})p(n,t-dt).
+\end{equation}
+
+The limit $dt \to 0$ (and dividing both sides by $dt$) then yields the master equation
+
+\begin{equation}
+\partial_t p_t(n) = (n-1)(1+s+x-\bar{x})p_t(n-1) + (n+1)p_t(n+1) - n(2+s+x-\bar{x})p_t(n).
+\end{equation}
+
+Define $G(\lambda,t) = \sum_n \lambda^n p_t(n)$. Then
+
+\begin{equation}
+\partial_t G(\lambda,t) = (1+s+x-\bar{x})\sum_n (n-1) \lambda^n p_t(n-1) + \sum_n (n+1) \lambda^n p_t(n+1) - (2+s+x-\bar{x})\sum_n n \lambda^n p_t(n).
+
+\end{equation}
+
+The sum in the first right hand side term can be rewritten as $\sum_n (n-1) \lambda^n p_t(n-1) = \sum_n n\lambda^{n+1} p_t(n)$ by relabeling elements, which is just $\lambda^2 \sum_n n\lambda^{n-1} p_t(n)$, or $\lambda^2 \partial_\lambda G$. The second becomes $\sum_n (n+1) \lambda^n p_t(n+1) = \sum_n n \lambda^{n-1} p_n$, which is just $\partial_\lambda G$. The third becomes $\sum_n n \lambda^n p_t(n) = \lambda \sum_n n \lambda^{n-1} p_n$, which is just $\lambda \partial_\lambda G$. Thus
+
+\begin{equation}
+\partial_t G(\lambda,t) = \left( (1+s+x-\bar{x})\lambda^2 - (2+s+x-\bar{x})\lambda + 1)\partial_\lambda G(\lambda, t).
+\end{equation}
+
+If there were no $\bar{x}$ term, this could easily be solved via the method of characteristics, but unfortunately $\bar{x} = \bar{x}(t) = vt = \sigma^2 t$, which is time dependent.
+We will obviously have to restrict our analysis to the case $1 + s + x > \bar{x}$, or else the lineage will (on average) shrink and any long time solution will end in extinction.
+Define the surface
+
+\begin{equation}
+a(\lambda,t)G_\lambda + b(\lambda,t)G_t + c(\lambda,t)G = f(\lambda,t,G).
+\end{equation}
+
+The normal to this integral surface is given by
+\begin{equation}
+\vec{n} = \vec{\nabla} F = G_\lambda \vec{i} + G_t \vec{j} - \vec{k}.
+\end{equation}
+So the PDE is simply $(a(\lambda,t),b(\lambda,t),f(\lambda,t,G)) \cdot \vec{n} = 0$, which is another way of saying that the PDE's vector field $\vec{v} = a(\lambda,t)\vec{i} + b(\lambda,t)\vec{j} + f(\lambda,t,G)\vec{k}$ is normal to the integral surface at every point.
+This means $\vec{v}$ can be written as a curve along the integral surface $F$.
+We can parametrize it using the dummy variable $\tau$ and write
+\begin{equation}
+\vec{p}(\tau ) = \lambda(\tau) \vec{i} + t(\tau) \vec{j} + G(\tau ) \vec{k},
+\end{equation}
+or
+\begin{equation}
+\vec{p}^\prime = \frac{d\vec{p}}{d\tau} = \frac{d\lambda}{d\tau} \vec{i} + \frac{dt}{d\tau} \vec{j} + \frac{dG}{d\tau} \vec{k},
+\end{equation}
+which is normal to $\vec{n}$ and hence proportional to $\vec{v}$.
+If the proportionality constant is $\kappa$, we have $\frac{d\lambda}{d\tau} = \kappa a(\lambda,t)$, $\frac{dt}{d\tau} = \kappa b(\lambda,t)$, and $\frac{dG}{d\tau} = \kappa f(\lambda,t,G)$, which gives us simply
+\begin{equation}
+\frac{d\lambda}{a} = \frac{dt}{b} = \frac{dG}{f}.
+\end{equation}
+In this case, we have $a(\lambda, t) = (1+s+x-\bar{x})\lambda^2 - (2+s+x-\bar{x})\lambda + 1)$, $b(\lambda, t) = -1$, and $c(\lambda, t) = f(\lambda,t,G) = 0$.
+To avoid a divide by zero error, we can simply flip the above equation.
+We end up with
+\begin{equation}
+\frac{d\lambda}{dt} = -((1+s+x-\bar{x})\lambda^2 - (2+s+x-\bar{x})\lambda + 1) = P(s,x,\lambda, t), \frac{dG}{dt} = 0,
+\end{equation}
+with the so called ``Cauchy data" (initial/boundary conditions) given above.
+It remains to solve these ODEs.
+It is worth noting that $P$ can be factored into
+\begin{equation}
+P(s,x,\lambda, t) = ((1+s+x-\bar{x})\lambda - 1)(\lambda - 1).
+\end{equation}
+The first equation we need to solve becomes:
+\begin{equation}
+\int \frac{d\lambda}{P(s,x,\lambda, t)} = \int dt
+\end{equation}
+Decomposing $P$ and using partial fractions allows us to write
+\begin{equation}
+\int \frac{d\lambda}{P(s,x,\lambda, t)} = \int d\lambda\left(\frac{A}{\lambda - \frac{1}{\alpha}} + \frac{B}{\lambda - 1}),
+\end{equation}
+with $\alpha = s+x-\bar{x}$, $A = \frac{1}{\frac{1}{\alpha} - 1}$, $B = -A = \frac{-1}{\frac{1}{\alpha} - 1}$.
+Integrating the first term on the left yields $\frac{1}{\frac{1}{\alpha}-1}\log(\lambda - \frac{1}{\alpha})$, and the second term yields $-\frac{1}{\frac{1}{\alpha}-1}\log(\lambda - 1)$.
+We thus have $\frac{1}{\frac{1}{\alpha}-1}\log(\frac{\lambda-\frac{1}{\alpha}}{\lambda-1}) + C_1$.
+The right hand side becomes of course simply $t$.
+Next, the equation $\frac{dG}{dt} = 0$ yields simply that $G = C_2$, or that $G$ depends on $t$ only through its dependence on $\lambda$.
+At this point, if $\alpha$ were simply a constant (in the case of no fitness variance, there would be no need to consider $x$ at all, and $\alpha$ would equal $s$), we could simply proceed to choose a clever value for $C_1$ and $C_2$ and solve for $\lambda(t)$.
+The Cauchy data $G(\lambda,0) = \lambda$ and $G(1,t) = 1$ would then guide us in determining the form of $t$.
+However, $\alpha$ is not a constant: it is hiding a nasty time dependence (via $\bar{x} = \sigma^2 t$).
+There might be a way around this, but it is not obvious.
+
+\subsection{Valley crossing when $N\sigma \gg 1$ in the high recombination limit}
+
+At sufficiently high recombination rates $r$ between loci, or (alternately) in a large enough genome with crossovers, the concept of those loci segregating within a common fitness wave will start to break down.
+In fact high enough recombination can effectively cause different parts of the genome to evolve neutrally even though the rate of adaptation is high.
+This is tantamount to a return to drift dominance.
+The relevant parameter turns out to be $N\sigma_b$, where $\sigma_b$ is the proportion of $\sigma$ that segregates within an ``effectively asexual" block: such a block will be large enough that recombination effectively ``cancels out" the amplification of fit variants due to selection.
+
+We proceed by identifying the block length.
+If $N\sigma \gg 1$, the fittest individuals are the only ones whose lineages stand a good chance of surviving.
+They are roughly $x_c = \sigma \sqrt{2 \log N\sigma}$ ahead of the mean, and their lineages will take approximately $\sigma^{-1} \sqrt{2 \log N\sigma}$ generations to dominate the population.
+Thus, two random individuals had a common ancestor roughly $\sigma^{-1} \sqrt{2 \log N\sigma}$ generations ago with probability of order $1$.
+On the other hand, if $N\sigma \ll 1$, coalescence is dominated by genetic drift and takes approximately $N$ generations. So the mean pair coalescence time is given by
+\begin{equation}
+\left< T_2 \right> \approx
+\begin{cases}
+N & \mathrm{if~} N\sigma \ll 1, \\
+c\sigma^{-1}\sqrt{2 log N\sigma} & \mathrm{if~} N\sigma \gg 1.
+\end{cases}
+\end{equation}
+
+Let $\xi$ be the characteristic distance over which loci share most of their history, which is the same as the appropriate block length.
+$\xi$ will decrease due to recombination:
+\begin{equation}
+\xi (t) = \frac{L}{1 + L\rho t} \approx \frac{1}{\rho t}.
+\end{equation}
+A block of the genome will harbor a fraction $\sigma_\xi^2$ of the total fitness variance, assuming that fitness variation is distributed roughly evenly throughout the genome.
+For a block of length $\xi$, this is
+\begin{equation}
+\sigma^2_\xi = \sigma^2 \frac{\xi}{L}.
+\end{equation}
+The relevant $\sigma_\xi$ is the amount of fitness variation $\sigma_b$ that segregates in a block of length $\xi_b$ that is unlikely to be broken up during the coalescence timescale.
+
+If fitness variation in the block is substantial (i.e., $N\sigma_b \gg 1$), coalescence in this part of the genome will occur in $\left< T_2 \right> = c \sqrt{2\log N\sigma_b}/\sigma_b$ generations.
+Hence
+\begin{equation}
+\xi_b = \frac{\sigma_b}{c\rho\sqrt{2\log N\sigma_b}},
+\end{equation}
+or equivalently
+\begin{equation}
+\sigma_b = \frac{\sigma^2}{L\rho c \sqrt{2 \log N\sigma_b}}
+\end{equation}
+and
+\begin{equation}
+\xi_b = \frac{\sigma^2}{2L\rho^2 c \log N\sigma_b}.
+\end{equation}
+
+If, on the other hand, coalescence in this block is \emph{not} primarily due to exponential amplification of fit lineages but rather due to drift processes, then we recover $\xi_b \sim (N\rho)^{-1}$, as expected under genetic drift.
+$\xi$ sets the characteristic distance over which linkage disequilibrium in the genome decays exponentially.
+Within blocks shorter than $\xi$, most loci tend to share most of their genetic history, and LD remains elevated.
+Sexual populations thereby behave quite similarly to asexual ones, with $\sigma$ being replaced by $\sigma_b$.
+When $N\sigma_b \ll 1$, the Kingman limit applies, and when $N\sigma_b \gg 1$, the BSC arises in the genetic block under consideration.
+
+We might therefore immediately consider two kinds of complex adaptation: one where the two loci occupy part of the same ``fitness wave" (because the distance between them is shorter than $\xi_b$) and one where they do not (and the recombination rate between them is arbitrarily large).
+We can immediately make two predictions, which still need a little bit of theory to back them up.
+In the first case, the valley crossing dynamics should be comparable to the ``singular traveling wave" case, with $\sigma_b$ substituted instead of $\sigma$.
+In the second case, we probably need to do a little bit more thinking.
+The traveling wave model should still set the fixation probability for each individual mutation, but then we need to consider a model similar to the $r > s$ limit in Weissman (2010) in order to obtain the full probability and wait time for the complex adaptation.
+
+\end{document}
